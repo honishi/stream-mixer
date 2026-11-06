@@ -23,6 +23,7 @@ export class Normalizer {
   constructor(sampleRate) {
     this.sampleRate = sampleRate;
     this.strength = 0.75;
+    this.enabled = true;
     this.energy = 0;
     this.initialized = false;
     this.gainDb = 0;
@@ -31,6 +32,7 @@ export class Normalizer {
     this.limiter = new PeakLimiter(sampleRate, -4);
     this.up = Math.exp(-1 / (sampleRate * 3));
     this.down = Math.exp(-1 / (sampleRate * 0.35));
+    this.disableSmoothing = Math.exp(-1 / (sampleRate * 0.02));
   }
 
   process(input, output) {
@@ -48,11 +50,12 @@ export class Normalizer {
       this.initialized = true;
       this.targetDb = clamp(-22 - gainToDb(Math.sqrt(this.energy)), -18, 12);
     }
-    // Changing strength to zero must also restore unity while the source is quiet.
-    const desiredDb = this.targetDb * this.strength;
+    // Disabling correction or setting strength to zero must restore unity even during silence.
+    const desiredDb = this.enabled ? this.targetDb * this.strength : 0;
     for (let i = 0; i < frames; i++) {
-      const coefficient = desiredDb < this.gainDb ? this.down : this.up;
-      if (this.inputDb > -50 || desiredDb < this.gainDb || this.strength === 0) {
+      let coefficient = desiredDb < this.gainDb ? this.down : this.up;
+      if (!this.enabled) coefficient = this.disableSmoothing;
+      if (this.inputDb > -50 || desiredDb < this.gainDb || this.strength === 0 || !this.enabled) {
         this.gainDb = coefficient * this.gainDb + (1 - coefficient) * desiredDb;
       }
       const gain = dbToGain(this.gainDb);

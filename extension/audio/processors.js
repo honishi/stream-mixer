@@ -9,6 +9,7 @@ class NormalizeProcessor extends AudioWorkletProcessor {
     this.port.onmessage = ({ data }) => {
       if (data.stop) this.active = false;
       if (typeof data.strength === 'number') this.dsp.strength = Math.min(1, Math.max(0, data.strength));
+      if (typeof data.enabled === 'boolean') this.dsp.enabled = data.enabled;
     };
   }
 

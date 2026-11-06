@@ -462,5 +462,30 @@
   },
   "reorderHint": {
     "message": "Drag to reorder. Focus the card and use arrow keys to move it."
+  },
+  "normalizeEnable": {
+    "message": "Enable normalization for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "normalizeDisable": {
+    "message": "Disable normalization for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "normalizeEnableHint": {
+    "message": "Enable automatic volume correction using the strength in Mix settings."
+  },
+  "normalizeDisableHint": {
+    "message": "Disable automatic volume correction. Peak protection stays active."
+  },
+  "resumeBeforeNormalize": {
+    "message": "Resume the mix before changing normalization."
   }
 }

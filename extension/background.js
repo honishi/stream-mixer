@@ -116,6 +116,7 @@ async function handle(message) {
     case 'RESET_PANS':
     case 'TOGGLE_SOLO':
     case 'TOGGLE_NR':
+    case 'TOGGLE_NORMALIZE':
     case 'NR_LEVEL':
     case 'REORDER':
     case 'BYPASS': return serialize(async () => {

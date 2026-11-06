@@ -627,6 +627,95 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
   } finally { await app.context.close(); }
 });
 
+test('per-tab normalization defaults on and retains its setting across mix controls and popup lifetime', async () => {
+  const app = await launch();
+  try {
+    const sources = [];
+    let view;
+    for (let i = 0; i < 2; i++) {
+      sources.push(await source(app, i));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      if (i === 0) await view.close();
+    }
+    await expect(view.locator('.normalize-button[aria-pressed=true]')).toHaveCount(2);
+    // Settle the stereo placement before comparing output levels across the toggle.
+    await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 0 } }));
+    await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan) < 0.001)).toBe(true);
+    await expect.poll(async () => (await state(view)).streams[0].correctionDb).toBeGreaterThan(1);
+    await expect.poll(async () => {
+      const stream = (await state(view)).streams[0];
+      return Math.max(...stream.rms) - stream.inputDb;
+    }).toBeGreaterThan(1);
+    const initial = await state(view);
+    const [firstId, secondId] = initial.streams.map((stream) => stream.id);
+    const before = Math.max(...initial.streams[0].rms);
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(async () => Math.abs((await state(view)).streams[0].correctionDb)).toBeLessThan(0.05);
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(before - 0.5);
+    expect((await state(view)).streams[1].normalizeEnabled).toBe(true);
+
+    await view.locator('.settings-section > summary').click();
+    await view.locator('#strength').fill('90');
+    await view.locator('#strength').press('Tab');
+    await expect.poll(async () => (await state(view)).settings.strength).toBe(0.9);
+    expect(Math.abs((await state(view)).streams[0].correctionDb)).toBeLessThan(0.05);
+    await view.locator('#strength').fill('0');
+    await view.locator('#strength').press('Tab');
+    await expect.poll(async () => (await state(view)).settings.strength).toBe(0);
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'true');
+    expect(Math.abs((await state(view)).streams[0].correctionDb)).toBeLessThan(0.05);
+    await view.locator('#strength').fill('80');
+    await view.locator('#strength').press('Tab');
+    await expect.poll(async () => (await state(view)).streams[0].correctionDb).toBeGreaterThan(1);
+    await view.locator('.settings-section > summary').click();
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'false');
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await view.locator('.solo-button').first().click();
+    await expect(view.locator('.solo-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 1 } }));
+    await expect(view.locator('.position-dot').first()).toBeEnabled();
+    await view.locator('.position-dot').first().focus();
+    await view.keyboard.press('End');
+    await expect(view.locator('#reset-pans')).toBeVisible();
+    await expect(view.locator('#reset-pans')).toBeEnabled();
+    await view.locator('.stream-card').first().focus();
+    await view.keyboard.press('End');
+    await expect.poll(async () => (await state(view)).streams.map((stream) => stream.id)).toEqual([secondId, firstId]);
+    await expect(view.locator('.normalize-button').last()).toHaveAttribute('aria-pressed', 'false');
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await view.locator('body').screenshot({ path: 'test-results/popup-normalize.png' });
+
+    await view.locator('#bypass').click();
+    await expect(view.locator('.normalize-button').last()).toBeDisabled();
+    const blocked = await view.evaluate((tabId) => chrome.runtime.sendMessage({ target: 'worker', type: 'TOGGLE_NORMALIZE', tabId }), firstId);
+    expect(blocked).toEqual({ ok: false, error: await localized(view, 'resumeBeforeNormalize') });
+    await view.close();
+    view = await popup(app, sources[1], false);
+    await expect(view.locator('.normalize-button').last()).toHaveAttribute('aria-pressed', 'false');
+    await view.locator('#bypass').click();
+    await expect(view.locator('.normalize-button').last()).toBeEnabled();
+    await expect.poll(async () => Math.abs((await state(view)).streams[1].correctionDb)).toBeLessThan(0.05);
+    expect((await state(view)).streams[1].noiseReductionEnabled).toBe(true);
+    expect((await state(view)).selectedSoloTabId).toBe(firstId);
+    await view.locator('.remove-button').last().click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await view.close();
+    view = await popup(app, sources[0]);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(2);
+    await expect(view.locator('.normalize-button[aria-pressed=true]')).toHaveCount(2);
+    expect((await state(view)).streams.at(-1).normalizeEnabled).toBe(true);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
 test('per-tab NR suppresses noise, preserves a voiced signal, and survives solo and bypass', async () => {
   const app = await launch();
   try {
@@ -799,6 +888,10 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('#add-label')).toHaveText(locale === 'ja' ? '追加済み' : 'Added');
       await expect(view.locator('#count')).toHaveText('1 STREAM');
       await expect(view.locator('h3')).toHaveText(title);
+      await expect(view.locator('.normalize-button')).toHaveAttribute('aria-pressed', 'true');
+      await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeDisable', [title]));
+      await view.locator('.normalize-button').click();
+      await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeEnable', [title]));
       expect(await view.locator('h3 b').count()).toBe(0);
       await expect(view.locator('.solo-button')).toHaveAttribute('aria-label', await localized(view, 'soloEnable', [title]));
       await view.locator('.nr-button').click();

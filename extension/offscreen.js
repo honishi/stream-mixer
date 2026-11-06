@@ -38,6 +38,18 @@ async function ensureAudio() {
   }
 }
 
+function updateNormalization(entry) {
+  entry.normalize.port.postMessage({ strength: settings.strength, enabled: entry.normalizeEnabled });
+}
+
+function toggleNormalization(tabId) {
+  const entry = streams.get(tabId);
+  if (!entry) throw new Error(t('tabReleased'));
+  if (bypassed) throw new Error(t('resumeBeforeNormalize'));
+  entry.normalizeEnabled = !entry.normalizeEnabled;
+  updateNormalization(entry);
+}
+
 function applySettings() {
   if (!context) return;
   master.gain.setTargetAtTime(settings.volume, context.currentTime, 0.04);
@@ -46,7 +58,7 @@ function applySettings() {
   ordered.forEach((entry, index) => {
     entry.targetPan = positions[index];
     entry.pan.pan.setTargetAtTime(entry.targetPan, context.currentTime, 0.15);
-    entry.normalize.port.postMessage({ strength: settings.strength });
+    updateNormalization(entry);
   });
 }
 
@@ -56,6 +68,7 @@ function getState() {
     streams: cardOrder.map((id) => streams.get(id)).map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
       targetPan: entry.targetPan, panPreference: entry.panPreference,
+      normalizeEnabled: entry.normalizeEnabled,
       noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
     })),
   };
@@ -248,7 +261,7 @@ async function add(message) {
     const fade = new GainNode(context, { gain: 0 });
     nodes.push(fade);
     const entry = { ...message.tab, stream, source, normalize, pan, meter, fade,
-      color: sequence++ % 6, targetPan: 0, panPreference: null,
+      color: sequence++ % 6, targetPan: 0, panPreference: null, normalizeEnabled: true,
       noiseReductionEnabled: false, noiseReductionLevel: DEFAULT_NOISE_LEVEL,
       stats: { inputDb: -120, correctionDb: 0, limitingDb: 0, rms: [-120, -120], peak: [-120, -120] },
     };
@@ -302,6 +315,7 @@ async function handle(message) {
     case 'BYPASS': await setBypass(message.enabled); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
     case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
+    case 'TOGGLE_NORMALIZE': toggleNormalization(message.tabId); break;
     case 'NR_LEVEL': setNoiseReductionLevel(message.tabId, message.level); break;
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;

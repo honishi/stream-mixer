@@ -462,5 +462,30 @@
   },
   "reorderHint": {
     "message": "ドラッグして並び替え。カードにフォーカスして矢印キーでも移動できます。"
+  },
+  "normalizeEnable": {
+    "message": "$title$ のNormalizeをオンにする",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "normalizeDisable": {
+    "message": "$title$ のNormalizeをオフにする",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "normalizeEnableHint": {
+    "message": "自動音量補正をオンにします。強さはミックス設定に従います。"
+  },
+  "normalizeDisableHint": {
+    "message": "自動音量補正をオフにします。ピーク抑制は継続します。"
+  },
+  "resumeBeforeNormalize": {
+    "message": "Normalizeを切り替えるには、先にミックスを再開してください。"
   }
 }

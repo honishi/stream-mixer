@@ -50,8 +50,8 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 .stream-heading { display: flex; align-items: center; gap: 9px; }.stream-number { flex-shrink: 0; border-radius: 7px; width: 29px; height: 30px; display: grid; place-items: center; background: color-mix(in srgb, var(--stream-color) 10%, transparent); color: var(--stream-color); font-variant-numeric: tabular-nums; font-size: 11px; }
 .stream-name { min-width: 0; flex: 1; }h3 { font-size: 11px; font-weight: 550; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin: 0 0 4px; }.stream-state { font-size: 9px; color: var(--muted); }.stream-state.playing { color: var(--stream-color); }
 .solo-button, .nr-button { appearance: none; flex-shrink: 0; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px; background: transparent; color: var(--muted); font-size: 10px; }
-.solo-button:hover:enabled, .nr-button:hover:enabled { border-color: var(--stream-color); }
-.solo-button[aria-pressed=true], .nr-button[aria-pressed=true] { border-color: var(--stream-color); background: var(--stream-color); color: var(--bg); }
+.solo-button:hover:enabled, .nr-button:hover:enabled, .normalize-button:hover:enabled { border-color: var(--stream-color); }
+.solo-button[aria-pressed=true], .nr-button[aria-pressed=true], .normalize-button[aria-pressed=true] { border-color: var(--stream-color); background: var(--stream-color); color: var(--bg); }
 .nr-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .nr-level { width: 65px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); font-size: 10px; cursor: pointer; }
 .nr-level:disabled { opacity: .4; cursor: default; }
@@ -75,6 +75,7 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 #add-icon { font-size: 15px; line-height: 15px; }
 #add-help { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stream-output { min-width: 0; }
+.normalize-button { display: block; appearance: none; width: 100%; padding: 2px 0; margin: 0 0 5px; border: 1px solid var(--line); border-radius: 4px; background: transparent; font-size: 8px; line-height: 10px; letter-spacing: .2px; }
 .stream-actions { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .meter-group .reading-label { line-height: 10px; margin-bottom: 3px; }
 .meter-channels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

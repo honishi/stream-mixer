@@ -198,6 +198,7 @@ function renderStream(stream, index) {
     attachCardReorder(card, stream.id);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
+    card.querySelector('.normalize-button').addEventListener('click', () => act('TOGGLE_NORMALIZE', { tabId: stream.id }));
     card.querySelector('.nr-level').addEventListener('change', (event) => {
       void act('NR_LEVEL', { tabId: stream.id, level: event.currentTarget.value });
     });
@@ -230,6 +231,12 @@ function renderStream(stream, index) {
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
   const bypassed = latestState.bypassed;
+  const normalizeButton = card.querySelector('.normalize-button');
+  normalizeButton.setAttribute('aria-pressed', String(stream.normalizeEnabled));
+  normalizeButton.disabled = busy || bypassed;
+  normalizeButton.ariaLabel = t(stream.normalizeEnabled ? 'normalizeDisable' : 'normalizeEnable', [stream.title]);
+  normalizeButton.title = bypassed ? t('resumeBeforeNormalize')
+    : t(stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint');
   const nrButton = card.querySelector('.nr-button');
   nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
   nrButton.disabled = busy || bypassed;
@@ -423,7 +430,7 @@ async function act(type, payload) {
   busy = true;
   showError(null);
   $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
-  for (const control of document.querySelectorAll('.nr-button, .nr-level, .solo-button, .remove-button, .position-dot')) control.disabled = true;
+  for (const control of document.querySelectorAll('.nr-button, .nr-level, .normalize-button, .solo-button, .remove-button, .position-dot')) control.disabled = true;
   try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }

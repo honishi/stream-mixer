@@ -63,6 +63,27 @@ test('mixed signal limiter bounds peaks and releases smoothly', () => {
   assert.ok(limiter.gain > 0.99);
 });
 
+test('disabling normalization smoothly removes positive and negative gain, retaining peak protection', () => {
+  for (const amplitude of [0.03, 0.4]) {
+    const dsp = new Normalizer(sampleRate);
+    assert.equal(dsp.enabled, true);
+    feed(dsp, amplitude, 6);
+    const before = Math.abs(dsp.gainDb);
+    assert.ok(before > 1);
+    dsp.enabled = false;
+    feed(dsp, 0, 128 / sampleRate);
+    assert.ok(Math.abs(dsp.gainDb) < before && Math.abs(dsp.gainDb) > before * 0.8);
+    feed(dsp, 0, 0.25);
+    assert.ok(Math.abs(dsp.gainDb) < 0.001, 'disabling works even during silence');
+    const { peak, output } = feed(dsp, 1, 0.2, 0.5);
+    assert.ok(peak <= dbToGain(-4) + 1e-6);
+    for (let i = 0; i < output[0].length; i++) assert.ok(Math.abs(output[1][i] - output[0][i] * 0.5) < 1e-6);
+    dsp.enabled = true;
+    feed(dsp, amplitude, 6);
+    assert.ok(Math.abs(dsp.gainDb) > 1, 're-enabling restores correction');
+  }
+});
+
 test('pan positions stay symmetric with centered mono and bounded extremes', () => {
   assert.deepEqual(panPositions(0, 1), []);
   assert.deepEqual(panPositions(1, 1), [0]);
