@@ -57,9 +57,9 @@
   </main>
 
   <template id="stream-template">
-    <article class="stream-card">
+    <article class="stream-card" draggable="true" tabindex="0">
       <div class="stream-heading">
-        <div class="stream-visual"><img class="stream-preview" alt="" hidden><span class="stream-number"></span></div>
+        <div class="stream-visual"><img class="stream-preview" alt="" draggable="false" hidden><span class="stream-number"></span></div>
         <div class="stream-name"><h3></h3><span class="stream-state"></span></div>
         <button class="remove-button" title="Release tab" data-i18n-title="remove">×</button>
       </div>

@@ -13,6 +13,7 @@ let settings = { ...DEFAULT_SETTINGS };
 let sequence = 0;
 let operation = Promise.resolve();
 let panOrder = [];
+let cardOrder = [];
 let bypassed = false;
 let solo;
 let soloTimer;
@@ -52,7 +53,7 @@ function applySettings() {
 function getState() {
   return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
-    streams: [...streams.values()].map((entry) => ({
+    streams: cardOrder.map((id) => streams.get(id)).map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
       targetPan: entry.targetPan, panPreference: entry.panPreference,
       noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
@@ -64,6 +65,7 @@ async function remove(id) {
   const entry = streams.get(id);
   if (!entry) return;
   streams.delete(id);
+  cardOrder = cardOrder.filter((entryId) => entryId !== id);
   if (selectedSoloTabId === id) selectedSoloTabId = null;
   if (solo?.tabId === id) endSolo(solo.owner);
   else applySoloGains();
@@ -261,6 +263,7 @@ async function add(message) {
     route(entry);
     streams.set(entry.id, entry);
     panOrder.push(entry.id);
+    cardOrder.push(entry.id);
     applySettings();
     await context.resume();
     fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, 0.025);
@@ -278,6 +281,17 @@ async function handle(message) {
     case 'START': setMessages(message.messages); await add(message); break;
     case 'STOP': await remove(message.tabId); break;
     case 'STOP_ALL': for (const id of [...streams.keys()]) await remove(id); break;
+    case 'REORDER': {
+      if (!streams.has(message.tabId) || (message.beforeTabId !== null && !streams.has(message.beforeTabId))) {
+        throw new Error(t('tabReleased'));
+      }
+      if (message.tabId === message.beforeTabId) break;
+      const next = cardOrder.filter((id) => id !== message.tabId);
+      const index = message.beforeTabId === null ? next.length : next.indexOf(message.beforeTabId);
+      next.splice(index, 0, message.tabId);
+      cardOrder = next;
+      break;
+    }
     case 'SETTINGS': settings = sanitizeSettings(message.settings); applySettings(); break;
     case 'PAN_PREFERENCE': setPanPreference(message.tabId, message.pan); break;
     case 'RESET_PANS':

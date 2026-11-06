@@ -451,5 +451,16 @@
         "content": "$1"
       }
     }
+  },
+  "reorderCard": {
+    "message": "Reorder card for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "reorderHint": {
+    "message": "Drag to reorder. Focus the card and use arrow keys to move it."
   }
 }

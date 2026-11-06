@@ -451,5 +451,16 @@
         "content": "$1"
       }
     }
+  },
+  "reorderCard": {
+    "message": "$title$ のカードを並び替え",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "reorderHint": {
+    "message": "ドラッグして並び替え。カードにフォーカスして矢印キーでも移動できます。"
   }
 }

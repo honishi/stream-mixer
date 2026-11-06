@@ -198,6 +198,93 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
   } finally { await app.context.close(); }
 });
 
+test('card reordering renumbers cards and field markers while preserving audio settings and popup lifetime', async () => {
+  const app = await launch();
+  try {
+    let view;
+    const sources = [];
+    for (let i = 0; i < 3; i++) {
+      sources.push(await source(app, i));
+      if (i === 0) await addTestVideo(sources[i], { color: '#ff0000' });
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      if (i < 2) await view.close();
+    }
+    await view.locator('.nr-level').first().selectOption('low');
+    await view.locator('.nr-button').first().click();
+    await view.locator('.solo-button').nth(1).click();
+    const initial = await state(view);
+    const ids = initial.streams.map((stream) => stream.id);
+    async function expectOrder(expected) {
+      await expect.poll(async () => (await state(view)).streams.map((stream) => stream.id)).toEqual(expected);
+      const ordered = (await state(view)).streams;
+      await expect(view.locator('.stream-card h3')).toHaveText(ordered.map((stream) => stream.title));
+      await expect(view.locator('.stream-number')).toHaveText(ordered.map((_, i) => String(i + 1).padStart(2, '0')));
+      await expect(view.locator('.position-dot')).toHaveText(ordered.map((_, i) => String(i + 1)));
+      for (const [index, stream] of ordered.entries()) {
+        await expect(view.locator('.position-dot').nth(index)).toHaveAttribute('aria-label', await localized(view, 'panLabel', [index + 1, stream.title]));
+      }
+    }
+    const target = await view.locator('.stream-card').nth(2).boundingBox();
+    await expect(view.locator('.stream-preview').first()).toBeVisible();
+    await view.locator('.stream-card').first().dragTo(view.locator('.stream-card').nth(2), {
+      sourcePosition: { x: 20, y: 18 }, targetPosition: { x: target.width - 30, y: 18 },
+    });
+    await expectOrder([ids[1], ids[2], ids[0]]);
+    const reordered = await state(view);
+    expect(reordered.soloTabId).toBe(initial.soloTabId);
+    expect(reordered.dragSoloTabId).toBeNull();
+    for (const stream of reordered.streams) {
+      const previous = initial.streams.find((entry) => entry.id === stream.id);
+      for (const key of ['targetPan', 'panPreference', 'color', 'noiseReductionEnabled', 'noiseReductionLevel']) {
+        expect(stream[key]).toEqual(previous[key]);
+      }
+    }
+    await view.locator('body').screenshot({ path: 'test-results/popup-reordered.png' });
+
+    await view.locator('.stream-card').first().focus();
+    await view.keyboard.press('ArrowDown');
+    await expectOrder([ids[2], ids[0], ids[1]]);
+    await expect(view.locator('.stream-card').last()).toBeFocused();
+    await view.locator('#bypass').click();
+    await expect(view.locator('#bypass')).toBeEnabled();
+    await view.locator('.stream-card').last().focus();
+    await view.keyboard.press('Home');
+    await expectOrder([ids[1], ids[2], ids[0]]);
+    expect((await state(view)).bypassed).toBe(true);
+
+    const start = await view.locator('.stream-card').first().boundingBox();
+    const end = await view.locator('.stream-card').nth(1).boundingBox();
+    await view.mouse.move(start.x + 80, start.y + 18);
+    await view.mouse.down();
+    await view.mouse.move(end.x + 80, end.y + 18, { steps: 8 });
+    await view.keyboard.press('Escape');
+    await view.mouse.up();
+    await expectOrder([ids[1], ids[2], ids[0]]);
+    await expect(view.locator('.card-dragging, .drop-before, .drop-after')).toHaveCount(0);
+
+    await view.close();
+    view = await popup(app, sources[2], false);
+    await expectOrder([ids[1], ids[2], ids[0]]);
+    const invalid = await view.evaluate((tabId) => chrome.runtime.sendMessage({ target: 'worker', type: 'REORDER', tabId, beforeTabId: -1 }), ids[0]);
+    expect(invalid.ok).toBe(false);
+    await expectOrder([ids[1], ids[2], ids[0]]);
+    await view.locator('.remove-button').nth(1).click();
+    await expectOrder([ids[1], ids[0]]);
+    await view.close();
+    const added = await source(app, 3);
+    view = await popup(app, added);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(3);
+    const addedId = (await state(view)).streams.at(-1).id;
+    expect(ids).not.toContain(addedId);
+    await expectOrder([ids[1], ids[0], addedId]);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
 test('six captured tabs, live meters, silence, popup/worker lifetime, removal and cleanup', async () => {
   const app = await launch();
   try {

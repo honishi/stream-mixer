@@ -16,6 +16,7 @@ let settingsTimer;
 let saving = Promise.resolve();
 let latestState;
 let dragging;
+let cardDrag;
 
 async function request(type, payload = {}) {
   const response = await chrome.runtime.sendMessage({ target: 'worker', type, ...payload });
@@ -129,10 +130,72 @@ function attachPanControl(dot, id) {
   });
 }
 
+function clearDropIndicators() {
+  for (const card of cards.values()) card.classList.remove('drop-before', 'drop-after');
+}
+
+function endCardDrag() {
+  cardDrag = undefined;
+  clearDropIndicators();
+  for (const card of cards.values()) card.classList.remove('card-dragging');
+}
+
+function attachCardReorder(card, id) {
+  card.addEventListener('pointerdown', (event) => {
+    card.draggable = event.button === 0 && !event.target.closest('button, input, select');
+  });
+  card.addEventListener('dragstart', (event) => {
+    if (busy || dragging || latestState.streams.length < 2) { event.preventDefault(); return; }
+    cardDrag = { id };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(id));
+    card.classList.add('card-dragging');
+  });
+  card.addEventListener('dragover', (event) => {
+    if (!cardDrag || busy) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    clearDropIndicators();
+    if (cardDrag.id === id) return;
+    const rect = card.getBoundingClientRect();
+    card.classList.add(event.clientX < rect.left + rect.width / 2 ? 'drop-before' : 'drop-after');
+  });
+  card.addEventListener('dragleave', (event) => {
+    if (!card.contains(event.relatedTarget)) card.classList.remove('drop-before', 'drop-after');
+  });
+  card.addEventListener('drop', (event) => {
+    if (!cardDrag || busy) return;
+    event.preventDefault();
+    const tabId = cardDrag.id;
+    endCardDrag();
+    if (tabId === id) return;
+    const remaining = latestState.streams.filter((stream) => stream.id !== tabId);
+    const rect = card.getBoundingClientRect();
+    const index = remaining.findIndex((stream) => stream.id === id);
+    const beforeTabId = remaining[index + (event.clientX < rect.left + rect.width / 2 ? 0 : 1)]?.id ?? null;
+    void act('REORDER', { tabId, beforeTabId });
+  });
+  card.addEventListener('dragend', endCardDrag);
+  card.addEventListener('keydown', (event) => {
+    if (event.target !== card || busy || dragging || cardDrag) return;
+    const offsets = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 };
+    if (!Object.hasOwn(offsets, event.key) && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    const index = latestState.streams.findIndex((stream) => stream.id === id);
+    let next = clamp(index + (offsets[event.key] ?? 0), 0, latestState.streams.length - 1);
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = latestState.streams.length - 1;
+    if (next === index) return;
+    const remaining = latestState.streams.filter((stream) => stream.id !== id);
+    void act('REORDER', { tabId: id, beforeTabId: remaining[next]?.id ?? null }).then(() => card.focus({ preventScroll: true }));
+  });
+}
+
 function renderStream(stream, index) {
   let card = cards.get(stream.id);
   if (!card) {
     card = $('stream-template').content.firstElementChild.cloneNode(true);
+    attachCardReorder(card, stream.id);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
     card.querySelector('.nr-level').addEventListener('change', (event) => {
@@ -155,6 +218,8 @@ function renderStream(stream, index) {
     $('positions').append(dot);
   }
   const color = colors[stream.color % colors.length];
+  card.ariaLabel = t('reorderCard', [stream.title]);
+  card.querySelector('.stream-visual').title = t('reorderHint');
   card.style.setProperty('--stream-color', color);
   card.querySelector('.stream-number').textContent = String(index + 1).padStart(2, '0');
   const heading = card.querySelector('h3');
@@ -252,11 +317,18 @@ function renderAddButton(isControlled) {
 function render(state) {
   latestState = state;
   const controlled = new Set(state.streams.map((stream) => stream.id));
+  if (cardDrag && !controlled.has(cardDrag.id)) endCardDrag();
   if (dragging && (!controlled.has(dragging.id) || state.bypassed || !panWidth())) endDrag();
   for (const [id, card] of cards) {
     if (!controlled.has(id)) { card.remove(); cards.delete(id); dots.get(id).remove(); dots.delete(id); pendingPans.delete(id); }
   }
   state.streams.forEach(renderStream);
+  state.streams.forEach((stream, index) => {
+    // Move existing elements only when order changes, preserving controls and drags during polling.
+    for (const [container, element] of [[$('streams'), cards.get(stream.id)], [$('positions'), dots.get(stream.id)]]) {
+      if (container.children[index] !== element) container.insertBefore(element, container.children[index] ?? null);
+    }
+  });
   $('empty').hidden = $('field-empty').hidden = state.streams.length > 0;
   $('count').textContent = t(state.streams.length === 1 ? 'streamCountOne' : 'streamCountOther', [state.streams.length]);
   document.querySelector('.stage-section').classList.toggle('bypassed', state.bypassed);
