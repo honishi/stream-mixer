@@ -915,7 +915,7 @@ test('per-tab normalization defaults on and retains its setting across mix contr
     await view.locator('#bypass').click();
     await expect(view.locator('.normalize-button').last()).toBeDisabled();
     const blocked = await view.evaluate((tabId) => chrome.runtime.sendMessage({ target: 'worker', type: 'TOGGLE_NORMALIZE', tabId }), firstId);
-    expect(blocked).toEqual({ ok: false, error: await localized(view, 'resumeBeforeNormalize') });
+    expect(blocked).toEqual({ ok: false, error: 'Resume the mix before changing normalization.' });
     await view.close();
     view = await popup(app, sources[1], false);
     await expect(view.locator('.normalize-button').last()).toHaveAttribute('aria-pressed', 'false');
@@ -974,7 +974,7 @@ test('per-tab NR suppresses noise, preserves a voiced signal, and survives solo 
       const { data } = await chrome.runtime.sendMessage({ target: 'worker', type: 'STATE' });
       return chrome.runtime.sendMessage({ target: 'worker', type: 'NR_LEVEL', tabId: data.streams[0].id, level: '__proto__' });
     });
-    expect(invalidLevel).toEqual({ ok: false, error: await localized(view, 'invalidNrLevel') });
+    expect(invalidLevel).toEqual({ ok: false, error: 'Invalid noise reduction strength.' });
     await view.locator('.nr-level').first().selectOption('high');
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms), { timeout: 10000 }).toBeLessThan(raw - 12);
     expect((await state(view)).streams[1].noiseReductionEnabled).toBe(false);
@@ -1069,7 +1069,8 @@ test('NR processing failure restores the original audio without releasing captur
     await expect(view.locator('.stream-card')).toHaveCount(1);
     await view.locator('.nr-button').click();
     await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
-    await expect(view.locator('#notice')).toContainText(await localized(view, 'nrRecovered', ['', '']));
+    await expect(view.locator('#notice')).toContainText('Noise reduction was disabled so playback can continue.');
+    await expect(view.locator('#notice')).toContainText('Injected NR failure');
     await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'false');
     await expect(view.locator('.stream-card')).toHaveCount(1);
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(-50);
@@ -1078,7 +1079,7 @@ test('NR processing failure restores the original audio without releasing captur
 });
 
 for (const locale of ['en', 'ja']) {
-  test(`localized popup and engine use the ${locale} catalog through native i18n`, async () => {
+  test(`localized popup uses the ${locale} catalog while audio diagnostics stay in English`, async () => {
     const directory = await mkdtemp(join(tmpdir(), `stream-mixer-${locale}-`));
     let app;
     try {
@@ -1146,9 +1147,9 @@ for (const locale of ['en', 'ja']) {
       await view.locator('.position-dot').focus();
       await view.keyboard.press('End');
       await expect(view.locator('#reset-pans')).toBeVisible();
-      // Exercise translated validation in the offscreen engine as well as worker errors.
+      // Audio diagnostics remain readable without a translation bundle in either locale.
       const invalidPan = await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'PAN_PREFERENCE', tabId: -1, pan: 0 }));
-      expect(invalidPan).toEqual({ ok: false, error: await localized(view, 'tabReleased') });
+      expect(invalidPan).toEqual({ ok: false, error: 'This tab has already been released.' });
       await view.locator('.settings-section > summary').click();
       await view.locator('main').evaluate((main) => { main.scrollTop = 0; });
       const layout = await view.evaluate(() => ({

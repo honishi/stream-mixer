@@ -1,4 +1,3 @@
-import { t } from '../shared/i18n.js';
 const binaries = new Map();
 const modules = new WeakMap();
 
@@ -7,7 +6,7 @@ async function getBinary() {
   const path = simd ? 'rnnoise_simd.wasm' : 'rnnoise.wasm';
   if (!binaries.has(path)) {
     binaries.set(path, fetch(new URL(`../vendor/rnnoise/${path}`, import.meta.url)).then((response) => {
-      if (!response.ok) throw new Error(t('nrLoadError'));
+      if (!response.ok) throw new Error('Could not load the noise reduction data.');
       return response.arrayBuffer();
     }).catch((error) => { binaries.delete(path); throw error; }));
   }
@@ -27,7 +26,7 @@ export function destroyNoiseNode(node) {
 }
 
 export async function createNoiseNode(context, onFailure, mix) {
-  if (context.sampleRate !== 48000) throw new Error(t('nrSampleRate'));
+  if (context.sampleRate !== 48000) throw new Error('Audio processing requires a 48 kHz sample rate. Reload the extension.');
   if (!modules.has(context)) {
     modules.set(context, context.audioWorklet.addModule(new URL('./noise-processor.js', import.meta.url)).catch((error) => {
       modules.delete(context);
@@ -41,16 +40,16 @@ export async function createNoiseNode(context, onFailure, mix) {
   try {
     await new Promise((resolve, reject) => {
       let ready = false;
-      const timeout = setTimeout(() => reject(new Error(t('nrTimeout'))), 5000);
+      const timeout = setTimeout(() => reject(new Error('Noise reduction initialization timed out.')), 5000);
       const fail = (error) => {
         clearTimeout(timeout);
         if (ready) onFailure(error);
         else reject(error);
       };
-      node.onprocessorerror = () => fail(new Error(t('nrStopped')));
+      node.onprocessorerror = () => fail(new Error('The noise reduction processor stopped.'));
       node.port.onmessage = ({ data }) => {
         if (data.type === 'ready') { ready = true; clearTimeout(timeout); resolve(); }
-        if (data.type === 'error') fail(new Error(t('nrError', [data.error])));
+        if (data.type === 'error') fail(new Error(`Noise reduction failed. Details: ${data.error}`));
       };
     });
     return node;

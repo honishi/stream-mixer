@@ -15,7 +15,7 @@ Chrome 116 以降で動作する Manifest V3 拡張です。拡張の利用に N
 
 ## 表示言語
 
-日本語と英語に対応しています。Chrome の表示言語に合わせて自動で選び、日本語以外の未対応言語では英語にフォールバックします。popup の操作・説明・読み上げラベル、拡張の説明、エラーや通知を翻訳しています。放送タイトルと、Chrome・音声ライブラリが返す診断の詳細は原文を表示します。
+日本語と英語に対応しています。Chrome の表示言語に合わせて自動で選び、日本語以外の未対応言語では英語にフォールバックします。popup の操作・説明・読み上げラベル、拡張の説明、タブ追加時の案内を翻訳しています。裏側で音量補正・パン・NRを行う音声処理のエラーや復旧通知は英語で表示します。放送タイトルと、Chrome・音声ライブラリが返す診断の詳細は原文を表示します。
 
 更新後は拡張を再読み込みしてください。言語設定を変えた場合は Chrome を再起動すると反映されます。拡張内の言語選択メニューはありません。
 
@@ -159,7 +159,7 @@ normalize は RMS を基準とする穏やかな自動ゲイン調整です。�
 
 normalize は左右を同じゲインで処理し、モノラルへの変換は行いません。StereoPanner の性質上、パンに応じて左右の混合比は変化します。各放送には −4 dBFS、合算後には −1 dBFS のサンプルピーク制限を設けています。これは LUFS 測定や true-peak 制限ではありません。発言者の分離は行いません。ノイズ抑制は各タブの NR がオンの場合のみ適用します。
 
-音声エンジンは 48 kHz で動作し、異なるサンプルレートの入力はブラウザが変換します。NR は480サンプル単位で処理し、フレーム変換による10msとモデル内部の10msを合わせて20msの遅延があります。「小」「中」で混ぜる原音も960サンプル（20ms）遅らせ、時間をそろえています。これは NR 部分の遅延で、タブの取得・出力デバイスなどによる遅延は別に加わります。
+音声処理は 48 kHz で動作し、異なるサンプルレートの入力はブラウザが変換します。NR は480サンプル単位で処理し、フレーム変換による10msとモデル内部の10msを合わせて20msの遅延があります。「小」「中」で混ぜる原音も960サンプル（20ms）遅らせ、時間をそろえています。これは NR 部分の遅延で、タブの取得・出力デバイスなどによる遅延は別に加わります。
 
 ## 権限とデータ
 
@@ -233,7 +233,7 @@ npm run release:package -- v0.1.0
 
 `extension/_locales/en/messages.json` を新しい言語のディレクトリにコピーして翻訳し、`locale` の値をその言語コードにします。既存キーと `placeholders` の対応を維持し、`npm test` とブラウザテストで表示を確認してください。翻訳に HTML は使用せず、表示時は文字列として扱います。
 
-Chrome 標準の [`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) を使用しています。翻訳APIを直接使えない offscreen 文書には、worker で選択・展開した翻訳テンプレートをタブ追加時に渡します。外部の翻訳サービスや追加権限は使用しません。
+Chrome 標準の [`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) を使用しています。翻訳APIを直接使えない offscreen 文書（popup を閉じても音声処理を続ける非表示のページ）は翻訳対象にせず、英語の診断文を返します。翻訳一覧の転送や独自の文字置換は行いません。外部の翻訳サービスや追加権限は使用しません。
 
 ### RNNoise の配布資産
 
@@ -253,7 +253,7 @@ Chrome 標準の [`chrome.i18n`](https://developer.chrome.com/docs/extensions/re
 | `extension/audio/processors.js` | AudioWorklet の処理と約10Hzの計測 |
 | `extension/popup.*` | 表示と操作。開いている間のみ状態を取得 |
 | `extension/_locales/*/messages.json` | 言語別の表示・通知・エラーメッセージ |
-| `extension/shared/i18n.js` | 翻訳の取得、HTML への適用、offscreen 向け翻訳の受け渡し |
+| `extension/shared/i18n.js` | Chrome標準の翻訳取得、HTML への適用 |
 | `extension/shared/settings.js` | 設定の既定値・検証とパン配置 |
 | `extension/shared/noise.js` | NR の3段階の強さと既定値 |
 | `extension/video-snapshot.js` | 許可されたタブ内の動画選択とサムネイル取得 |

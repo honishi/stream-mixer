@@ -1,4 +1,3 @@
-import { t } from './i18n.js';
 import { clamp, panPositions } from './settings.js';
 
 // Work in normalized field coordinates so preferences scale with the spread.
@@ -41,11 +40,11 @@ export function preferredPanPositions(entries, spread) {
 }
 
 export function withPanPreference(entries, id, requestedPan, spread) {
-  if (!Number.isFinite(requestedPan)) throw new Error(t('invalidPan'));
+  if (!Number.isFinite(requestedPan)) throw new Error('Invalid pan position.');
   const selected = entries.find((entry) => entry.id === id);
-  if (!selected) throw new Error(t('tabReleased'));
+  if (!selected) throw new Error('This tab has already been released.');
   const width = panPositions(2, spread)[1];
-  if (!width) throw new Error(t('increaseSpread'));
+  if (!width) throw new Error('Increase stereo width before adjusting positions.');
   const pan = clamp(requestedPan, -width, width);
   const reordered = entries.filter((entry) => entry.id !== id);
   // Pick the nearest spatial slot, then solve the actual positions softly.

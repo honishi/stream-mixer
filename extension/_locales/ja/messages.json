@@ -55,7 +55,7 @@
     "message": "自動配置に戻す"
   },
   "resumeAudio": {
-    "message": "音声エンジンを再開"
+    "message": "音声処理を再開"
   },
   "mixSettings": {
     "message": "ミックス設定"
@@ -317,7 +317,7 @@
     }
   },
   "engineConnectionError": {
-    "message": "音声エンジンに接続できませんでした。"
+    "message": "音声処理に接続できませんでした。"
   },
   "webPageRequired": {
     "message": "通常の Web ページで拡張を開いてください。"
@@ -340,80 +340,7 @@
     "message": "不明な操作です。"
   },
   "engineStopped": {
-    "message": "音声エンジンが停止しています。"
-  },
-  "outputStopped": {
-    "message": "出力処理が停止したため制御を解除しました。"
-  },
-  "nrRecovered": {
-    "message": "$title$: ノイズ抑制を解除して再生を継続します。$error$",
-    "placeholders": {
-      "title": {
-        "content": "$1"
-      },
-      "error": {
-        "content": "$2"
-      }
-    }
-  },
-  "tabReleased": {
-    "message": "このタブはすでに制御を解除されています。"
-  },
-  "resumeBeforeNr": {
-    "message": "ミックスを再開してからノイズ抑制を切り替えてください。"
-  },
-  "resumeBeforeSolo": {
-    "message": "ミックスを再開してからソロを選択してください。"
-  },
-  "cannotSolo": {
-    "message": "このタブをソロ再生できません。"
-  },
-  "invalidSolo": {
-    "message": "ソロ操作が正しくありません。"
-  },
-  "invalidBypass": {
-    "message": "バイパス設定が正しくありません。"
-  },
-  "resumeBeforePan": {
-    "message": "ミックスを再開してから配置を調整してください。"
-  },
-  "audioStopped": {
-    "message": "音声処理が停止したため制御を解除しました。"
-  },
-  "captureEnded": {
-    "message": "音声の取得が終了しました。再追加してください。"
-  },
-  "unknownAudioOperation": {
-    "message": "不明な音声操作です。"
-  },
-  "invalidPan": {
-    "message": "パン位置が正しくありません。"
-  },
-  "increaseSpread": {
-    "message": "パンの広がりを上げてから配置を調整してください。"
-  },
-  "nrLoadError": {
-    "message": "ノイズ抑制データを読み込めませんでした。"
-  },
-  "nrSampleRate": {
-    "message": "48 kHz の音声エンジンが必要です。拡張を再読み込みしてください。"
-  },
-  "nrTimeout": {
-    "message": "ノイズ抑制の準備がタイムアウトしました。"
-  },
-  "nrStopped": {
-    "message": "ノイズ抑制の音声処理が停止しました。"
-  },
-  "nrError": {
-    "message": "ノイズ抑制でエラーが発生しました。詳細: $error$",
-    "placeholders": {
-      "error": {
-        "content": "$1"
-      }
-    }
-  },
-  "translationLoadError": {
-    "message": "翻訳データを読み込めませんでした。拡張を再読み込みしてください。"
+    "message": "音声処理が停止しています。"
   },
   "offscreenPurpose": {
     "message": "popup を閉じても、選択したタブの音量補正・パン・ノイズ抑制を継続します。"
@@ -440,9 +367,6 @@
   },
   "nrHigh": {
     "message": "大"
-  },
-  "invalidNrLevel": {
-    "message": "ノイズリダクションの強さが正しくありません。"
   },
   "videoSnapshot": {
     "message": "$title$ の動画スナップショット",

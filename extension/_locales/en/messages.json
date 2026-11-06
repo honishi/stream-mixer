@@ -317,7 +317,7 @@
     }
   },
   "engineConnectionError": {
-    "message": "Could not connect to the audio engine."
+    "message": "Could not communicate with the audio processor."
   },
   "webPageRequired": {
     "message": "Open the extension on a regular web page."
@@ -340,80 +340,7 @@
     "message": "Unknown operation."
   },
   "engineStopped": {
-    "message": "The audio engine has stopped."
-  },
-  "outputStopped": {
-    "message": "The output processor stopped. The tab has been released."
-  },
-  "nrRecovered": {
-    "message": "$title$: Noise reduction was disabled so playback can continue. $error$",
-    "placeholders": {
-      "title": {
-        "content": "$1"
-      },
-      "error": {
-        "content": "$2"
-      }
-    }
-  },
-  "tabReleased": {
-    "message": "This tab has already been released."
-  },
-  "resumeBeforeNr": {
-    "message": "Resume the mix before changing noise reduction."
-  },
-  "resumeBeforeSolo": {
-    "message": "Resume the mix before selecting a solo tab."
-  },
-  "cannotSolo": {
-    "message": "This tab cannot be soloed."
-  },
-  "invalidSolo": {
-    "message": "Invalid solo operation."
-  },
-  "invalidBypass": {
-    "message": "Invalid bypass setting."
-  },
-  "resumeBeforePan": {
-    "message": "Resume the mix before adjusting positions."
-  },
-  "audioStopped": {
-    "message": "Audio processing stopped. The tab has been released."
-  },
-  "captureEnded": {
-    "message": "Audio capture ended. Add the tab again."
-  },
-  "unknownAudioOperation": {
-    "message": "Unknown audio operation."
-  },
-  "invalidPan": {
-    "message": "Invalid pan position."
-  },
-  "increaseSpread": {
-    "message": "Increase stereo width before adjusting positions."
-  },
-  "nrLoadError": {
-    "message": "Could not load the noise reduction data."
-  },
-  "nrSampleRate": {
-    "message": "A 48 kHz audio engine is required. Reload the extension."
-  },
-  "nrTimeout": {
-    "message": "Noise reduction initialization timed out."
-  },
-  "nrStopped": {
-    "message": "The noise reduction processor stopped."
-  },
-  "nrError": {
-    "message": "Noise reduction failed. Details: $error$",
-    "placeholders": {
-      "error": {
-        "content": "$1"
-      }
-    }
-  },
-  "translationLoadError": {
-    "message": "Could not load translations. Reload the extension."
+    "message": "Audio processing has stopped."
   },
   "offscreenPurpose": {
     "message": "Keep processing audio from selected tabs when the popup closes."
@@ -440,9 +367,6 @@
   },
   "nrHigh": {
     "message": "High"
-  },
-  "invalidNrLevel": {
-    "message": "Invalid noise reduction strength."
   },
   "videoSnapshot": {
     "message": "Video snapshot of $title$",

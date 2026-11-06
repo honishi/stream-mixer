@@ -1,4 +1,3 @@
-import { t, setMessages } from './shared/i18n.js';
 import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 import { preferredPanPositions, withPanPreference } from './shared/panning.js';
 import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
@@ -31,7 +30,7 @@ async function ensureAudio() {
       channelCount: 2, channelCountMode: 'explicit' });
     master.connect(safety).connect(next.destination);
     safety.onprocessorerror = () => {
-      for (const entry of streams.values()) notifyFailure(entry, t('outputStopped'));
+      for (const entry of streams.values()) notifyFailure(entry, 'The output processor stopped. The tab has been released.');
     };
     context = next;
   } catch (error) {
@@ -46,8 +45,8 @@ function updateNormalization(entry) {
 
 function toggleNormalization(tabId) {
   const entry = streams.get(tabId);
-  if (!entry) throw new Error(t('tabReleased'));
-  if (bypassed) throw new Error(t('resumeBeforeNormalize'));
+  if (!entry) throw new Error('This tab has already been released.');
+  if (bypassed) throw new Error('Resume the mix before changing normalization.');
   entry.normalizeEnabled = !entry.normalizeEnabled;
   updateNormalization(entry);
 }
@@ -133,7 +132,7 @@ function noiseFailure(entry, node, error) {
     entry.noise = undefined;
     route(entry);
     destroyNoiseNode(node);
-    notices.push(t('nrRecovered', [entry.title, error.message]));
+    notices.push(`${entry.title}: Noise reduction was disabled so playback can continue. ${error.message}`);
     if (notices.length > 3) notices.shift();
     chrome.runtime.sendMessage({ target: 'worker', type: 'ENGINE_CHANGED' }).catch(() => {});
   }).catch(console.error);
@@ -141,8 +140,8 @@ function noiseFailure(entry, node, error) {
 
 async function toggleNoiseReduction(tabId) {
   const entry = streams.get(tabId);
-  if (!entry) throw new Error(t('tabReleased'));
-  if (bypassed) throw new Error(t('resumeBeforeNr'));
+  if (!entry) throw new Error('This tab has already been released.');
+  if (bypassed) throw new Error('Resume the mix before changing noise reduction.');
   const enabled = !entry.noiseReductionEnabled;
   let node;
   // Leave the original path intact until the model has initialized successfully.
@@ -160,9 +159,9 @@ async function toggleNoiseReduction(tabId) {
 
 function setNoiseReductionLevel(tabId, level) {
   const entry = streams.get(tabId);
-  if (!entry) throw new Error(t('tabReleased'));
-  if (bypassed) throw new Error(t('resumeBeforeNr'));
-  if (typeof level !== 'string' || !Object.hasOwn(NOISE_LEVELS, level)) throw new Error(t('invalidNrLevel'));
+  if (!entry) throw new Error('This tab has already been released.');
+  if (bypassed) throw new Error('Resume the mix before changing noise reduction.');
+  if (typeof level !== 'string' || !Object.hasOwn(NOISE_LEVELS, level)) throw new Error('Invalid noise reduction strength.');
   entry.noiseReductionLevel = level;
   entry.noise?.port.postMessage({ type: 'mix', value: NOISE_LEVELS[level] });
 }
@@ -184,22 +183,22 @@ function applyStreamGains(timeConstant = 0.02) {
 
 function toggleMute(tabId) {
   const entry = streams.get(tabId);
-  if (!entry) throw new Error(t('tabReleased'));
+  if (!entry) throw new Error('This tab has already been released.');
   entry.mixMuted = !entry.mixMuted;
   applyStreamGains();
 }
 
 function toggleSolo(tabId) {
-  if (bypassed) throw new Error(t('resumeBeforeSolo'));
-  if (!streams.has(tabId)) throw new Error(t('tabReleased'));
+  if (bypassed) throw new Error('Resume the mix before selecting a solo tab.');
+  if (!streams.has(tabId)) throw new Error('This tab has already been released.');
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
   selectedFocusTabId = null;
   applyStreamGains();
 }
 
 function toggleFocus(tabId) {
-  if (bypassed) throw new Error(t('resumeBeforeFocus'));
-  if (!streams.has(tabId)) throw new Error(t('tabReleased'));
+  if (bypassed) throw new Error('Resume the mix before changing Focus.');
+  if (!streams.has(tabId)) throw new Error('This tab has already been released.');
   selectedFocusTabId = selectedFocusTabId === tabId ? null : tabId;
   selectedSoloTabId = null;
   applyStreamGains();
@@ -213,8 +212,8 @@ function endSolo(owner) {
 }
 
 function beginSolo(tabId, owner) {
-  if (bypassed || !streams.has(tabId)) throw new Error(t('cannotSolo'));
-  if (typeof owner !== 'string' || !owner) throw new Error(t('invalidSolo'));
+  if (bypassed || !streams.has(tabId)) throw new Error('This tab cannot be soloed.');
+  if (typeof owner !== 'string' || !owner) throw new Error('Invalid solo operation.');
   solo = { tabId, owner };
   clearTimeout(soloTimer);
   applyStreamGains(0.01);
@@ -226,7 +225,7 @@ function beginSolo(tabId, owner) {
 }
 
 async function setBypass(enabled) {
-  if (typeof enabled !== 'boolean') throw new Error(t('invalidBypass'));
+  if (typeof enabled !== 'boolean') throw new Error('Invalid bypass setting.');
   if (enabled === bypassed) return;
   if (solo) endSolo(solo.owner);
   if (context) {
@@ -244,7 +243,7 @@ async function setBypass(enabled) {
 }
 
 function setPanPreference(tabId, pan) {
-  if (bypassed) throw new Error(t('resumeBeforePan'));
+  if (bypassed) throw new Error('Resume the mix before adjusting positions.');
   const ordered = withPanPreference(panOrder.map((id) => streams.get(id)), tabId, pan, settings.spread);
   panOrder = ordered.map((entry) => entry.id);
   streams.get(tabId).panPreference = ordered.find((entry) => entry.id === tabId).panPreference;
@@ -291,9 +290,9 @@ async function add(message) {
     };
     normalize.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
     meter.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
-    normalize.onprocessorerror = meter.onprocessorerror = () => notifyFailure(entry, t('audioStopped'));
+    normalize.onprocessorerror = meter.onprocessorerror = () => notifyFailure(entry, 'Audio processing stopped. The tab has been released.');
     stream.getAudioTracks().forEach((track) => {
-      track.onended = () => notifyFailure(entry, t('captureEnded'));
+      track.onended = () => notifyFailure(entry, 'Audio capture ended. Add the tab again.');
     });
     normalize.connect(pan);
     fade.connect(meter);
@@ -315,12 +314,12 @@ async function add(message) {
 
 async function handle(message) {
   switch (message.type) {
-    case 'START': setMessages(message.messages); await add(message); break;
+    case 'START': await add(message); break;
     case 'STOP': await remove(message.tabId); break;
     case 'STOP_ALL': for (const id of [...streams.keys()]) await remove(id); break;
     case 'REORDER': {
       if (!streams.has(message.tabId) || (message.beforeTabId !== null && !streams.has(message.beforeTabId))) {
-        throw new Error(t('tabReleased'));
+        throw new Error('This tab has already been released.');
       }
       if (message.tabId === message.beforeTabId) break;
       const next = cardOrder.filter((id) => id !== message.tabId);
@@ -346,7 +345,7 @@ async function handle(message) {
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;
-    default: throw new Error(t('unknownAudioOperation'));
+    default: throw new Error('Unknown audio operation.');
   }
   return getState();
 }

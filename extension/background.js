@@ -1,4 +1,4 @@
-import { t, getMessageBundle } from './shared/i18n.js';
+import { t } from './shared/i18n.js';
 import { sanitizeSettings } from './shared/settings.js';
 import { getVideoSnapshots } from './video-snapshot.js';
 
@@ -76,8 +76,7 @@ async function startTab(tabId) {
     if (existing.streams.some((stream) => stream.id === tabId)) return;
     const settings = await getSettings();
     const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
-    await engine('START', { streamId, tab: { id: tabId, title: tab.title }, settings,
-      messages: await getMessageBundle() });
+    await engine('START', { streamId, tab: { id: tabId, title: tab.title }, settings });
     await chrome.storage.session.remove('notices');
     await updateBadge(existing.streams.length + 1);
   } catch (error) {
