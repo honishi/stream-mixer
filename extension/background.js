@@ -106,6 +106,7 @@ async function handle(message) {
     });
     case 'PAN_PREFERENCE':
     case 'RESET_PANS':
+    case 'TOGGLE_SOLO':
     case 'BYPASS': return serialize(async () => {
       if (!(await hasEngine())) throw new Error('先にタブを追加してください。');
       return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled });

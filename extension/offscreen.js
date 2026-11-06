@@ -13,6 +13,7 @@ let panOrder = [];
 let bypassed = false;
 let solo;
 let soloTimer;
+let selectedSoloTabId = null;
 
 async function ensureAudio() {
   if (context) return;
@@ -46,7 +47,8 @@ function applySettings() {
 }
 
 function getState() {
-  return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: solo?.tabId ?? null,
+  return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
+    selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
     streams: [...streams.values()].map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
       targetPan: entry.targetPan, panPreference: entry.panPreference, ...entry.stats,
@@ -58,7 +60,9 @@ async function remove(id) {
   const entry = streams.get(id);
   if (!entry) return;
   streams.delete(id);
+  if (selectedSoloTabId === id) selectedSoloTabId = null;
   if (solo?.tabId === id) endSolo(solo.owner);
+  else applySoloGains();
   panOrder = panOrder.filter((entryId) => entryId !== id);
   entry.stream.getTracks().forEach((track) => { track.onended = null; track.stop(); });
   for (const node of [entry.source, entry.normalize, entry.pan, entry.meter, entry.fade]) node.disconnect();
@@ -95,13 +99,29 @@ function route(entry) {
   }
 }
 
-function audibleGain(entry) { return !solo || bypassed || solo.tabId === entry.id ? 1 : 0; }
+function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
+
+function audibleGain(entry) {
+  const selected = effectiveSoloTabId();
+  return selected === null || selected === entry.id ? 1 : 0;
+}
+
+function applySoloGains(timeConstant = 0.02) {
+  for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, timeConstant);
+}
+
+function toggleSolo(tabId) {
+  if (bypassed) throw new Error('ミックスを再開してからソロを選択してください。');
+  if (!streams.has(tabId)) throw new Error('このタブはすでに制御を解除されています。');
+  selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
+  applySoloGains();
+}
 
 function endSolo(owner) {
   if (!solo || solo.owner !== owner) return;
   solo = undefined;
   clearTimeout(soloTimer);
-  for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(1, context.currentTime, 0.02);
+  applySoloGains();
 }
 
 function beginSolo(tabId, owner) {
@@ -109,7 +129,7 @@ function beginSolo(tabId, owner) {
   if (typeof owner !== 'string' || !owner) throw new Error('ソロ操作が正しくありません。');
   solo = { tabId, owner };
   clearTimeout(soloTimer);
-  for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, 0.01);
+  applySoloGains(0.01);
   // A lease is a fallback for a lost popup/worker connection. The port normally
   // releases solo immediately; a crashed owner cannot leave other streams muted.
   soloTimer = setTimeout(() => {
@@ -131,7 +151,7 @@ async function setBypass(enabled) {
   bypassed = enabled;
   for (const entry of streams.values()) {
     route(entry);
-    entry.fade.gain.setTargetAtTime(1, context.currentTime, 0.008);
+    entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, 0.008);
   }
 }
 
@@ -216,6 +236,7 @@ async function handle(message) {
       applySettings();
       break;
     case 'BYPASS': await setBypass(message.enabled); break;
+    case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;

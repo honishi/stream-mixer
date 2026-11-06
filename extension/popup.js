@@ -132,6 +132,7 @@ function renderStream(stream, index) {
   if (!card) {
     card = $('stream-template').content.firstElementChild.cloneNode(true);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
+    card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
     cards.set(stream.id, card);
     $('streams').append(card);
     const dot = document.createElement('button');
@@ -150,10 +151,17 @@ function renderStream(stream, index) {
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
   const bypassed = latestState.bypassed;
+  const soloButton = card.querySelector('.solo-button');
+  const selectedSolo = latestState.selectedSoloTabId === stream.id;
+  soloButton.setAttribute('aria-pressed', String(selectedSolo));
+  soloButton.disabled = busy || bypassed;
+  soloButton.ariaLabel = selectedSolo ? `${stream.title} のソロを解除` : `${stream.title} をソロ再生`;
+  soloButton.title = selectedSolo ? 'ソロを解除して全体再生に戻す' : 'このタブだけを再生';
   const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
   const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
   state.textContent = stream.muted ? 'タブがミュートされています' : soloMuted ? '他のタブをソロ再生中' : latestState.soloTabId === stream.id
-    ? '● ドラッグ中のソロ再生' : bypassed ? 'バイパス中 · 元の音声' : playing ? '● 音声を調整中' : '○ 無音・一時停止';
+    ? latestState.dragSoloTabId === stream.id ? '● ドラッグ中のソロ再生' : '● ソロ再生中'
+    : bypassed ? 'バイパス中 · 元の音声' : playing ? '● 音声を調整中' : '○ 無音・一時停止';
   state.classList.toggle('playing', playing && !stream.muted);
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;
@@ -202,14 +210,14 @@ function render(state) {
   state.streams.forEach(renderStream);
   $('empty').hidden = $('field-empty').hidden = state.streams.length > 0;
   $('count').textContent = `${state.streams.length} STREAM${state.streams.length === 1 ? '' : 'S'}`;
-  $('status').textContent = !state.streams.length ? 'STANDBY' : state.bypassed ? 'BYPASS' : state.audioState === 'running' ? '● LIVE MIX' : 'PAUSED';
+  $('status').textContent = !state.streams.length ? 'STANDBY' : state.bypassed ? 'BYPASS' : state.audioState !== 'running' ? 'PAUSED' : state.soloTabId != null ? '● SOLO' : '● LIVE MIX';
   $('status').classList.toggle('live', state.streams.length > 0 && state.audioState === 'running' && !state.bypassed);
   $('status').classList.toggle('bypassed', state.bypassed);
   document.querySelector('.stage-section').classList.toggle('bypassed', state.bypassed);
   $('bypass').textContent = state.bypassed ? 'ミックスを再開' : '全バイパス';
   $('bypass').setAttribute('aria-pressed', String(state.bypassed));
   $('bypass').disabled = busy || !state.streams.length;
-  $('mix-heading').textContent = state.bypassed ? 'バイパス中' : 'ミックス中';
+  $('mix-heading').textContent = state.bypassed ? 'バイパス中' : state.soloTabId != null ? 'ソロ再生中' : 'ミックス中';
   $('field-toolbar').hidden = !state.streams.length;
   if (!dragging) $('field-help').textContent = state.bypassed ? '配置を保持中 · 元の音声を再生' : !panWidth()
     ? '広がりを上げると配置を調整できます' : '数字をドラッグして配置を調整';

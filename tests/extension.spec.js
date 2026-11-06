@@ -305,3 +305,89 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     expect(app.errors).toEqual([]);
   } finally { await app.context.close(); }
 });
+
+test('Solo buttons retain selection, coexist with drag and bypass, and release on removal', async () => {
+  const app = await launch();
+  try {
+    const sources = [];
+    let view;
+    for (let i = 0; i < 2; i++) {
+      sources.push(await source(app, i));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      if (i === 0) await view.close();
+    }
+    const ids = (await state(view)).streams.map((stream) => stream.id);
+    const expectSolo = async (id) => {
+      await expect.poll(async () => {
+        const current = await state(view);
+        return current.soloTabId === id && current.streams.every((stream) =>
+          stream.id === id ? Math.max(...stream.rms) > -50 : Math.max(...stream.rms) < -60);
+      }).toBe(true);
+    };
+    const expectAllPlaying = async () => {
+      await expect.poll(async () => (await state(view)).streams.every((stream) => Math.max(...stream.rms) > -50)).toBe(true);
+    };
+
+    await view.locator('.solo-button').first().click();
+    await expectSolo(ids[0]);
+    await expect(view.locator('.solo-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(view.locator('#status')).toHaveText('● SOLO');
+    await sources[0].evaluate(() => { document.title = '長い放送タイトルでも Solo ボタンと解除ボタンが popup の幅に収まることを確認する配信'; });
+    await expect(view.locator('h3').first()).toContainText('長い放送タイトル');
+    const layout = await view.evaluate(() => ({ width: document.querySelector('main').clientWidth,
+      scrollWidth: document.querySelector('main').scrollWidth }));
+    expect(layout.scrollWidth).toBe(layout.width);
+    await view.locator('body').screenshot({ path: 'test-results/popup-solo.png' });
+    await view.close();
+    // A button selection must outlive the three-second temporary drag lease.
+    await new Promise((done) => setTimeout(done, 3500));
+    view = await popup(app, sources[0], false);
+    await expectSolo(ids[0]);
+    await expect(view.locator('.solo-button').first()).toHaveAttribute('aria-pressed', 'true');
+
+    const secondDot = view.locator('.position-dot').nth(1);
+    await secondDot.hover();
+    const dot = await secondDot.boundingBox();
+    await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
+    await view.mouse.down();
+    await expectSolo(ids[1]);
+    expect((await state(view)).selectedSoloTabId).toBe(ids[0]);
+    await view.mouse.up();
+    await expectSolo(ids[0]);
+
+    await view.locator('.solo-button').nth(1).click();
+    await expectSolo(ids[1]);
+    await expect(view.locator('.solo-button[aria-pressed=true]')).toHaveCount(1);
+    await view.locator('.solo-button').nth(1).click();
+    await expectAllPlaying();
+    expect((await state(view)).selectedSoloTabId).toBe(null);
+
+    await view.locator('.solo-button').first().click();
+    await expectSolo(ids[0]);
+    await view.locator('#bypass').click();
+    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expectAllPlaying();
+    await expect(view.locator('.solo-button').first()).toBeDisabled();
+    expect((await state(view)).selectedSoloTabId).toBe(ids[0]);
+    await view.locator('#bypass').click();
+    await expectSolo(ids[0]);
+
+    await view.close();
+    sources.push(await source(app, 2));
+    view = await popup(app, sources[2]);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(3);
+    await expectSolo(ids[0]);
+    await sources[0].close();
+    await expect(view.locator('.stream-card')).toHaveCount(2);
+    await expectAllPlaying();
+    expect((await state(view)).selectedSoloTabId).toBe(null);
+    await expect(view.locator('.solo-button[aria-pressed=true]')).toHaveCount(0);
+    await view.locator('#stop-all').click();
+    await expect(view.locator('.stream-card')).toHaveCount(0);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
