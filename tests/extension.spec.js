@@ -159,7 +159,7 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     expect(previewSize.height).toBeLessThanOrEqual(30);
     await expect.poll(() => previewColor(view.locator('.stream-preview').first())).toEqual([0, 1, 0]);
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.max(...stream.rms) > -55)).toBe(true);
-    expect(await view.evaluate(() => document.body.scrollWidth)).toBe(440);
+    expect(await view.evaluate(() => document.body.scrollWidth)).toBe(680);
     await view.locator('body').screenshot({ path: 'test-results/popup-video.png' });
 
     await first.evaluate(() => {
@@ -220,6 +220,22 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
           addBottom: document.querySelector('#add').getBoundingClientRect().bottom }));
         expect(layout.bodyHeight).toBeLessThanOrEqual(600);
         expect(layout.addBottom).toBeLessThan(52);
+        const cardLayout = await view.locator('.stream-card').evaluateAll((cards) => cards.map((card) => ({
+          rect: card.getBoundingClientRect().toJSON(),
+          width: card.clientWidth, scrollWidth: card.scrollWidth,
+          controlsRight: card.querySelector('.solo-button').getBoundingClientRect().right,
+          gainLeft: card.querySelector('.gain-reading').getBoundingClientRect().left,
+        })));
+        expect(cardLayout[0].rect.y).toBe(cardLayout[1].rect.y);
+        expect(cardLayout[1].rect.x).toBeGreaterThan(cardLayout[0].rect.right);
+        expect(cardLayout[2].rect.x).toBe(cardLayout[0].rect.x);
+        expect(cardLayout[2].rect.y).toBeGreaterThan(cardLayout[0].rect.bottom);
+        for (const card of cardLayout) {
+          expect(card.rect.width).toBeLessThan(320);
+          expect(card.rect.height).toBeLessThanOrEqual(112);
+          expect(card.scrollWidth).toBe(card.width);
+          expect(card.controlsRight).toBeLessThan(card.gainLeft);
+        }
         await view.screenshot({ path: 'test-results/popup-full.png', fullPage: true });
       }
       if (i < 5) await view.close();
@@ -724,7 +740,7 @@ for (const locale of ['en', 'ja']) {
       expect(layout.height).toBeLessThanOrEqual(600);
       expect(layout.scrollWidth).toBe(layout.width);
       expect(layout.mainScrollWidth).toBe(layout.mainWidth);
-      expect(layout.addRight).toBeLessThanOrEqual(440);
+      expect(layout.addRight).toBeLessThanOrEqual(680);
       await view.locator('body').screenshot({ path: `test-results/popup-i18n-${locale}.png` });
       await view.locator('#bypass').click();
       await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'バイパス中' : 'Bypassed');
