@@ -21,6 +21,10 @@
         <p id="field-empty">音の居場所を、ひとつずつ。</p>
         <div class="field-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
       </div>
+      <div id="field-toolbar" class="field-toolbar" hidden>
+        <span id="field-help">数字をドラッグして配置を調整</span>
+        <button id="reset-pans" class="text-button" hidden>自動配置に戻す</button>
+      </div>
     </section>
 
     <div id="error" class="notice error" role="alert" hidden></div>
@@ -43,7 +47,7 @@
     </details>
 
     <section class="streams-section" aria-label="制御中のタブ">
-      <div class="section-heading"><h2>ミックス中</h2><button id="stop-all" class="text-button" disabled>すべて解除</button></div>
+      <div class="section-heading"><h2 id="mix-heading">ミックス中</h2><div class="mix-actions"><button id="bypass" class="text-button" aria-pressed="false" disabled>全バイパス</button><button id="stop-all" class="text-button" disabled>すべて解除</button></div></div>
       <div id="streams"></div>
       <div id="empty" class="empty-state"><span class="empty-symbol" aria-hidden="true">≋</span><p>放送をミックスに追加</p><span>音声が出ているタブで拡張を開くと、<br>音量と左右の配置をまとめて整えられます。</span></div>
     </section>

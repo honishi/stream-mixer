@@ -41,7 +41,7 @@ async function updateBadge(count) {
 async function snapshot() {
   const [settings, tabs, state, session] = await Promise.all([
     getSettings(), chrome.tabs.query({}),
-    hasEngine().then((exists) => exists ? engine('STATE') : { streams: [], audioState: 'idle', notices: [] }),
+    hasEngine().then((exists) => exists ? engine('STATE') : { streams: [], audioState: 'idle', notices: [], bypassed: false }),
     chrome.storage.session.get('notices'),
   ]);
   const byId = new Map(tabs.map((tab) => [tab.id, tab]));
@@ -104,6 +104,12 @@ async function handle(message) {
     case 'RESUME': return serialize(async () => {
       if (await hasEngine()) await engine('RESUME');
     });
+    case 'PAN_PREFERENCE':
+    case 'RESET_PANS':
+    case 'BYPASS': return serialize(async () => {
+      if (!(await hasEngine())) throw new Error('先にタブを追加してください。');
+      return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled });
+    });
     case 'ENGINE_CHANGED': return serialize(async () => {
       if (await hasEngine()) {
         const state = await engine('STATE');
@@ -123,6 +129,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handle(message).then((data) => sendResponse({ ok: true, data }),
     (error) => sendResponse({ ok: false, error: error.message }));
   return true;
+});
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'pan-drag' || port.sender?.id !== chrome.runtime.id
+    || port.sender?.url !== chrome.runtime.getURL('popup.html')) return;
+  const owner = crypto.randomUUID();
+  let tabId;
+  let disconnected = false;
+  port.onMessage.addListener((message) => {
+    if (message.type === 'START' && Number.isInteger(message.tabId)) tabId = message.tabId;
+    else if (message.type !== 'KEEP_ALIVE') return;
+    serialize(async () => {
+      if (disconnected || tabId === undefined) return;
+      if (!(await hasEngine())) throw new Error('音声エンジンが停止しています。');
+      await engine('DRAG_SOLO', { tabId, owner });
+    }).catch((error) => {
+      if (!disconnected) port.postMessage({ error: error.message });
+    });
+  });
+  port.onDisconnect.addListener(() => {
+    disconnected = true;
+    serialize(async () => {
+      if (await hasEngine()) await engine('END_DRAG_SOLO', { owner });
+    }).catch(console.error);
+  });
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {

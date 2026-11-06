@@ -1,7 +1,10 @@
+import { clamp, panPositions } from './shared/settings.js';
+
 const $ = (id) => document.getElementById(id);
 const colors = ['#c1ed8b', '#9acbe9', '#dfb1dc', '#efca83', '#9ce0cb', '#edab99'];
 const cards = new Map();
 const dots = new Map();
+const pendingPans = new Map();
 const dirtySettings = new Set();
 let activeTab;
 let busy = false;
@@ -9,6 +12,8 @@ let polling = false;
 let candidateKey = '';
 let settingsTimer;
 let saving = Promise.resolve();
+let latestState;
+let dragging;
 
 async function request(type, payload = {}) {
   const response = await chrome.runtime.sendMessage({ target: 'worker', type, ...payload });
@@ -24,6 +29,104 @@ function showError(error) {
 const meterPercent = (db) => Math.max(0, Math.min(100, (db + 60) / 60 * 100));
 function panText(pan) { return Math.abs(pan) < 0.015 ? 'CENTER' : `${pan < 0 ? 'L' : 'R'} ${Math.round(Math.abs(pan) * 100)}`; }
 
+function panWidth() { return panPositions(2, latestState?.settings.spread ?? 0)[1]; }
+
+function endDrag(commit = false) {
+  if (!dragging) return;
+  const drag = dragging;
+  // Keep the dropped marker anchored while the engine decides the new layout.
+  if (commit && drag.moved) pendingPans.set(drag.id, drag.pan);
+  dragging = undefined;
+  drag.dot.classList.remove('dragging');
+  if (drag.dot.hasPointerCapture(drag.pointerId)) drag.dot.releasePointerCapture(drag.pointerId);
+  const releaseSolo = () => { clearInterval(drag.heartbeat); drag.port.disconnect(); };
+  if (commit && drag.moved) {
+    void act('PAN_PREFERENCE', { tabId: drag.id, pan: drag.pan }).then((result) => {
+      // Draw the resolved target directly from the response. Rendering the
+      // AudioParam's still-moving value here would jump back to the old location.
+      if (result && latestState) {
+        const targets = new Map(result.streams.map((stream) => [stream.id, stream.targetPan]));
+        for (const stream of latestState.streams) {
+          if (targets.has(stream.id)) stream.targetPan = targets.get(stream.id);
+        }
+      }
+      pendingPans.delete(drag.id);
+      if (latestState) render(latestState);
+    }).finally(releaseSolo);
+  } else {
+    releaseSolo();
+    if (latestState) render(latestState);
+  }
+}
+
+function attachPanControl(dot, id) {
+  dot.type = 'button';
+  dot.setAttribute('role', 'slider');
+  dot.setAttribute('aria-orientation', 'horizontal');
+  dot.setAttribute('aria-describedby', 'field-help');
+  dot.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0 || !event.isPrimary || busy || dragging || latestState?.bypassed || !panWidth()) return;
+    const rect = dot.getBoundingClientRect();
+    const stream = latestState.streams.find((stream) => stream.id === id);
+    if (!stream) return;
+    event.preventDefault();
+    dot.focus({ preventScroll: true });
+    const port = chrome.runtime.connect({ name: 'pan-drag' });
+    port.postMessage({ type: 'START', tabId: id });
+    const heartbeat = setInterval(() => port.postMessage({ type: 'KEEP_ALIVE' }), 1000);
+    port.onMessage.addListener((message) => {
+      if (message.error) {
+        showError(new Error(message.error));
+        if (dragging?.port === port) endDrag();
+      }
+    });
+    port.onDisconnect.addListener(() => {
+      const error = chrome.runtime.lastError;
+      clearInterval(heartbeat);
+      if (dragging?.port === port) {
+        endDrag();
+        if (error) showError(new Error(error.message));
+      }
+    });
+    dragging = { id, dot, pointerId: event.pointerId, startX: event.clientX,
+      offset: event.clientX - (rect.left + rect.width / 2), pan: stream.targetPan, moved: false, port, heartbeat };
+    dot.setPointerCapture(event.pointerId);
+    dot.classList.add('dragging');
+    $('field-help').textContent = 'この音声をソロ再生中 · 離すと全体を再配置';
+  });
+  const move = (event) => {
+    if (dragging?.id !== id || dragging.pointerId !== event.pointerId) return;
+    if (Math.abs(event.clientX - dragging.startX) > 3) dragging.moved = true;
+    if (!dragging.moved) return;
+    const field = document.querySelector('.stereo-field').getBoundingClientRect();
+    dragging.pan = clamp(((event.clientX - dragging.offset - field.left) / field.width - 0.5) / 0.44, -panWidth(), panWidth());
+    dot.style.left = `${50 + dragging.pan * 44}%`;
+    dot.setAttribute('aria-valuetext', `希望位置 ${panText(dragging.pan)}。離すと全体を再配置`);
+  };
+  dot.addEventListener('pointermove', move);
+  dot.addEventListener('pointerup', (event) => {
+    if (dragging?.id !== id || dragging.pointerId !== event.pointerId) return;
+    move(event);
+    endDrag(true);
+  });
+  for (const eventName of ['pointercancel', 'lostpointercapture']) {
+    dot.addEventListener(eventName, (event) => {
+      if (dragging?.id === id && dragging.pointerId === event.pointerId) endDrag();
+    });
+  }
+  dot.addEventListener('keydown', (event) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    if (busy || dragging || latestState?.bypassed || !panWidth()) return;
+    const stream = latestState.streams.find((stream) => stream.id === id);
+    if (!stream) return;
+    const pan = event.key === 'Home' ? -panWidth() : event.key === 'End' ? panWidth()
+      : stream.targetPan + (event.key === 'ArrowLeft' ? -1 : 1) * panWidth() * 0.2;
+    void act('PAN_PREFERENCE', { tabId: id, pan });
+  });
+}
+
 function renderStream(stream, index) {
   let card = cards.get(stream.id);
   if (!card) {
@@ -31,8 +134,9 @@ function renderStream(stream, index) {
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     cards.set(stream.id, card);
     $('streams').append(card);
-    const dot = document.createElement('div');
+    const dot = document.createElement('button');
     dot.className = 'position-dot';
+    attachPanControl(dot, stream.id);
     dots.set(stream.id, dot);
     $('positions').append(dot);
   }
@@ -45,8 +149,11 @@ function renderStream(stream, index) {
   card.querySelector('.remove-button').ariaLabel = `${stream.title} の制御を解除`;
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
-  const playing = stream.inputDb > -50;
-  state.textContent = stream.muted ? 'タブがミュートされています' : playing ? '● 音声を調整中' : '○ 無音・一時停止';
+  const bypassed = latestState.bypassed;
+  const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
+  const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
+  state.textContent = stream.muted ? 'タブがミュートされています' : soloMuted ? '他のタブをソロ再生中' : latestState.soloTabId === stream.id
+    ? '● ドラッグ中のソロ再生' : bypassed ? 'バイパス中 · 元の音声' : playing ? '● 音声を調整中' : '○ 無音・一時停止';
   state.classList.toggle('playing', playing && !stream.muted);
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;
@@ -58,15 +165,26 @@ function renderStream(stream, index) {
     peak.hidden = stream.peak[c] < -60;
   }
   const correction = Math.abs(stream.correctionDb) < 0.05 ? 0 : stream.correctionDb;
-  card.querySelector('.correction').textContent = `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
-  card.querySelector('.limiter-label').textContent = stream.limitingDb < -0.5 ? `ピーク抑制 ${stream.limitingDb.toFixed(1)}` : '';
-  card.querySelector('.pan-track i').style.left = `${(stream.pan + 1) * 50}%`;
-  card.querySelector('.pan-value').textContent = panText(stream.pan);
+  card.querySelector('.correction').textContent = bypassed ? '—' : `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
+  card.querySelector('.limiter-label').textContent = !bypassed && stream.limitingDb < -0.5 ? `ピーク抑制 ${stream.limitingDb.toFixed(1)}` : '';
+  card.querySelector('.pan-track i').style.left = `${((bypassed ? 0 : stream.pan) + 1) * 50}%`;
+  card.querySelector('.pan-value').textContent = bypassed ? 'BYPASS' : panText(stream.pan);
   const dot = dots.get(stream.id);
+  const visualPan = pendingPans.get(stream.id) ?? stream.targetPan;
+  const activity = !stream.muted && !soloMuted && latestState.audioState === 'running' ? clamp((rms + 50) / 35, 0, 1) : 0;
+  dot.style.setProperty('--activity', activity.toFixed(3));
+  dot.classList.toggle('sound-active', activity > 0);
+  dot.classList.toggle('solo-muted', soloMuted);
   dot.textContent = index + 1;
-  dot.title = `${stream.title} · ${panText(stream.pan)}`;
+  dot.title = `${stream.title} · ${panText(visualPan)} · ドラッグまたは左右キーで配置を調整`;
+  dot.disabled = busy || bypassed || !panWidth();
+  dot.ariaLabel = `${index + 1}: ${stream.title} の配置`;
+  dot.setAttribute('aria-valuemin', String(-Math.round(panWidth() * 100)));
+  dot.setAttribute('aria-valuemax', String(Math.round(panWidth() * 100)));
+  dot.setAttribute('aria-valuenow', String(Math.round(visualPan * 100)));
+  if (dragging?.id !== stream.id) dot.setAttribute('aria-valuetext', panText(visualPan));
   dot.style.setProperty('--stream-color', color);
-  dot.style.left = `${50 + stream.pan * 44}%`;
+  if (dragging?.id !== stream.id) dot.style.left = `${50 + visualPan * 44}%`;
 }
 
 function updateSlider(key) {
@@ -75,20 +193,34 @@ function updateSlider(key) {
 }
 
 function render(state) {
+  latestState = state;
   const controlled = new Set(state.streams.map((stream) => stream.id));
+  if (dragging && (!controlled.has(dragging.id) || state.bypassed || !panWidth())) endDrag();
   for (const [id, card] of cards) {
-    if (!controlled.has(id)) { card.remove(); cards.delete(id); dots.get(id).remove(); dots.delete(id); }
+    if (!controlled.has(id)) { card.remove(); cards.delete(id); dots.get(id).remove(); dots.delete(id); pendingPans.delete(id); }
   }
   state.streams.forEach(renderStream);
   $('empty').hidden = $('field-empty').hidden = state.streams.length > 0;
   $('count').textContent = `${state.streams.length} STREAM${state.streams.length === 1 ? '' : 'S'}`;
-  $('status').textContent = !state.streams.length ? 'STANDBY' : state.audioState === 'running' ? '● LIVE MIX' : 'PAUSED';
-  $('status').classList.toggle('live', state.streams.length > 0 && state.audioState === 'running');
+  $('status').textContent = !state.streams.length ? 'STANDBY' : state.bypassed ? 'BYPASS' : state.audioState === 'running' ? '● LIVE MIX' : 'PAUSED';
+  $('status').classList.toggle('live', state.streams.length > 0 && state.audioState === 'running' && !state.bypassed);
+  $('status').classList.toggle('bypassed', state.bypassed);
+  document.querySelector('.stage-section').classList.toggle('bypassed', state.bypassed);
+  $('bypass').textContent = state.bypassed ? 'ミックスを再開' : '全バイパス';
+  $('bypass').setAttribute('aria-pressed', String(state.bypassed));
+  $('bypass').disabled = busy || !state.streams.length;
+  $('mix-heading').textContent = state.bypassed ? 'バイパス中' : 'ミックス中';
+  $('field-toolbar').hidden = !state.streams.length;
+  if (!dragging) $('field-help').textContent = state.bypassed ? '配置を保持中 · 元の音声を再生' : !panWidth()
+    ? '広がりを上げると配置を調整できます' : '数字をドラッグして配置を調整';
+  $('reset-pans').hidden = !state.streams.some((stream) => Number.isFinite(stream.panPreference));
+  $('reset-pans').disabled = busy || state.bypassed;
   $('stop-all').disabled = busy || !state.streams.length;
   $('resume').hidden = !state.streams.length || state.audioState === 'running';
   $('notice').textContent = state.notices.join('\n');
   $('notice').hidden = !state.notices.length;
   for (const key of ['volume', 'strength', 'spread']) {
+    $(key).disabled = state.bypassed;
     if (!dirtySettings.has(key) && document.activeElement !== $(key)) $(key).value = Math.round(state.settings[key] * 100);
     updateSlider(key);
   }
@@ -136,8 +268,8 @@ async function act(type, payload) {
   if (busy) return;
   busy = true;
   showError(null);
-  $('add').disabled = $('stop-all').disabled = true;
-  try { await request(type, payload); }
+  $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
+  try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }
 }
@@ -167,8 +299,13 @@ for (const key of ['volume', 'strength', 'spread']) {
 }
 $('add').addEventListener('click', () => act('START', { tabId: activeTab?.id }));
 $('stop-all').addEventListener('click', () => act('STOP_ALL'));
+$('bypass').addEventListener('click', () => act('BYPASS', { enabled: !latestState?.bypassed }));
+$('reset-pans').addEventListener('click', () => act('RESET_PANS'));
 $('resume').addEventListener('click', () => act('RESUME'));
 window.addEventListener('pagehide', saveSettings);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && dragging) { event.preventDefault(); event.stopPropagation(); endDrag(); }
+});
 
 async function init() {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
