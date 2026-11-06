@@ -114,9 +114,6 @@
   "candidateHelp": {
     "message": "対象タブに移動した後、そのタブで拡張を開いて追加してください。"
   },
-  "localAudio": {
-    "message": "音声は端末内で処理"
-  },
   "nr": {
     "message": "NR"
   },

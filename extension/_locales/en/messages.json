@@ -114,9 +114,6 @@
   "candidateHelp": {
     "message": "Switch to a tab, then open this extension there to add it."
   },
-  "localAudio": {
-    "message": "Audio stays on your device"
-  },
   "nr": {
     "message": "NR"
   },
