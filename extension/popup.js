@@ -219,6 +219,25 @@ function updateSlider(key) {
   $(key).style.setProperty('--fill', `${$(key).value}%`);
 }
 
+/** @returns {void} */
+function renderAddButton(isControlled) {
+  const canAdd = activeTab && /^https?:\/\//.test(activeTab.url ?? '') && activeTab.audible && !activeTab.mutedInfo?.muted;
+  $('add').disabled = busy || isControlled || !canAdd;
+  let labelKey = 'addTab';
+  if (busy) labelKey = 'processing';
+  else if (isControlled) labelKey = 'added';
+  $('add-label').textContent = t(labelKey);
+  $('add-icon').textContent = isControlled ? '✓' : '＋';
+  let addHelp = t('addHelp');
+  if (isControlled) addHelp = t('addedHelp');
+  else if (activeTab?.mutedInfo?.muted) addHelp = t('unmuteHelp');
+  else if (canAdd) addHelp = activeTab.title;
+  $('add-help').textContent = addHelp;
+  $('add').title = addHelp;
+  $('add-help').hidden = Boolean(isControlled || canAdd);
+}
+
+/** @returns {void} */
 function render(state) {
   latestState = state;
   const controlled = new Set(state.streams.map((stream) => stream.id));
@@ -233,12 +252,12 @@ function render(state) {
   $('bypass').textContent = state.bypassed ? t('resumeMix') : t('bypassAll');
   $('bypass').setAttribute('aria-pressed', String(state.bypassed));
   $('bypass').disabled = busy || !state.streams.length;
-  let heading = t('mixing');
-  if (!state.streams.length) heading = t('standby');
-  else if (state.bypassed) heading = t('bypassed');
-  else if (state.audioState !== 'running') heading = t('paused');
-  else if (state.soloTabId != null) heading = t('soloHeading');
-  $('mix-heading').textContent = heading;
+  let headingKey = 'mixing';
+  if (!state.streams.length) headingKey = 'standby';
+  else if (state.bypassed) headingKey = 'bypassed';
+  else if (state.audioState !== 'running') headingKey = 'paused';
+  else if (state.soloTabId != null) headingKey = 'soloHeading';
+  $('mix-heading').textContent = t(headingKey);
   $('field-toolbar').hidden = !state.streams.length;
   if (!dragging) {
     let helpKey = 'dragHelp';
@@ -257,21 +276,7 @@ function render(state) {
     if (!dirtySettings.has(key) && document.activeElement !== $(key)) $(key).value = Math.round(state.settings[key] * 100);
     updateSlider(key);
   }
-  const isControlled = controlled.has(activeTab?.id);
-  const canAdd = activeTab && /^https?:\/\//.test(activeTab.url ?? '') && activeTab.audible && !activeTab.mutedInfo?.muted;
-  $('add').disabled = busy || isControlled || !canAdd;
-  let addLabel = t('addTab');
-  if (busy) addLabel = t('processing');
-  else if (isControlled) addLabel = t('added');
-  $('add-label').textContent = addLabel;
-  $('add-icon').textContent = isControlled ? '✓' : '＋';
-  let addHelp = t('addHelp');
-  if (isControlled) addHelp = t('addedHelp');
-  else if (activeTab?.mutedInfo?.muted) addHelp = t('unmuteHelp');
-  else if (canAdd) addHelp = activeTab.title;
-  $('add-help').textContent = addHelp;
-  $('add').title = addHelp;
-  $('add-help').hidden = Boolean(isControlled || canAdd);
+  renderAddButton(controlled.has(activeTab?.id));
   const candidates = state.audibleTabs.filter((tab) => tab.id !== activeTab?.id);
   $('candidates-section').hidden = !candidates.length;
   $('candidate-count').textContent = candidates.length;

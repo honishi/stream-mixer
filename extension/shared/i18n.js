@@ -1,22 +1,31 @@
-let messages = {};
-let bundle;
+let offscreenMessages = {};
+let messageBundlePromise;
 
+/** @returns {string} */
 export function t(key, substitutions = []) {
-  if (globalThis.chrome?.i18n) return chrome.i18n.getMessage(key, substitutions.map(String)) || key;
+  if (globalThis.chrome?.i18n) {
+    return chrome.i18n.getMessage(key, substitutions.map(String)) || key;
+  }
   // Offscreen documents only have chrome.runtime. Replace markers in the
   // worker's translated template once, so user titles remain literal text.
-  return messages[key]?.replace(/\u0001([0-8])\u0002/g, (_, index) => String(substitutions[index] ?? '')) || key;
+  return offscreenMessages[key]?.replace(/\u0001([0-8])\u0002/g, (_, index) => String(substitutions[index] ?? '')) || key;
 }
 
-export function setMessages(value) {
-  messages = value;
+/** @returns {void} */
+export function setMessages(translations) {
+  offscreenMessages = translations;
 }
 
+/** @returns {Promise<Record<string, string>>} */
 export function getMessageBundle() {
-  bundle ??= loadMessageBundle().catch((error) => { bundle = undefined; throw error; });
-  return bundle;
+  messageBundlePromise ??= loadMessageBundle().catch((error) => {
+    messageBundlePromise = undefined;
+    throw error;
+  });
+  return messageBundlePromise;
 }
 
+/** @returns {Promise<Record<string, string>>} */
 async function loadMessageBundle() {
   const locale = chrome.runtime.getManifest().default_locale;
   const response = await fetch(chrome.runtime.getURL(`_locales/${locale}/messages.json`));
@@ -26,17 +35,24 @@ async function loadMessageBundle() {
   return Object.fromEntries(keys.map((key) => [key, chrome.i18n.getMessage(key, markers)]));
 }
 
+/** @returns {void} */
+function localizeRoot(root) {
+  for (const element of root.querySelectorAll('[data-i18n]')) {
+    element.textContent = t(element.dataset.i18n);
+  }
+  for (const attribute of ['title', 'aria-label']) {
+    const messageAttribute = `data-i18n-${attribute}`;
+    for (const element of root.querySelectorAll(`[${messageAttribute}]`)) {
+      element.setAttribute(attribute, t(element.getAttribute(messageAttribute)));
+    }
+  }
+}
+
+/** @returns {void} */
 export function localizeDocument() {
   document.documentElement.lang = t('locale');
-  const roots = [document, ...Array.from(document.querySelectorAll('template'), (template) => template.content)];
-  for (const root of roots) {
-    for (const element of root.querySelectorAll('[data-i18n]')) {
-      element.textContent = t(element.dataset.i18n);
-    }
-    for (const attribute of ['title', 'aria-label']) {
-      for (const element of root.querySelectorAll(`[data-i18n-${attribute}]`)) {
-        element.setAttribute(attribute, t(element.getAttribute(`data-i18n-${attribute}`)));
-      }
-    }
+  localizeRoot(document);
+  for (const template of document.querySelectorAll('template')) {
+    localizeRoot(template.content);
   }
 }
