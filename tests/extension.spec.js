@@ -627,6 +627,90 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
   } finally { await app.context.close(); }
 });
 
+test('per-tab mute persists across solo, drag, bypass, ordering, and popup lifetime', async () => {
+  const app = await launch();
+  try {
+    const sources = [];
+    let view;
+    for (let i = 0; i < 2; i++) {
+      sources.push(await source(app, i));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      if (i === 0) await view.close();
+    }
+    const [firstId, secondId] = (await state(view)).streams.map((stream) => stream.id);
+    async function expectAudible(ids) {
+      await expect.poll(async () => (await state(view)).streams.every((stream) => ids.includes(stream.id)
+        ? Math.max(...stream.rms) > -55 : Math.max(...stream.rms) < -90)).toBe(true);
+    }
+    await expect(view.locator('.mute-button[aria-pressed=false]')).toHaveCount(2);
+    await expectAudible([firstId, secondId]);
+    await view.locator('.mute-button').first().click();
+    await expectAudible([secondId]);
+    await expect(view.locator('.stream-state').first()).toHaveText(await localized(view, 'mixMutedState'));
+    await expect(view.locator('.position-dot').first()).toHaveClass(/solo-muted/);
+    expect((await state(view)).streams[0].inputDb).toBeGreaterThan(-50);
+    expect((await state(view)).streams[0].muted).toBe(false); // Native Chrome mute is untouched.
+    await view.locator('.solo-button').first().click();
+    await expectAudible([]);
+    await view.locator('.mute-button').first().click();
+    await expectAudible([firstId]);
+    await view.locator('.mute-button').first().click();
+    await expectAudible([]);
+    await view.locator('.solo-button').first().click();
+    await expectAudible([secondId]);
+
+    const dot = await view.locator('.position-dot').first().boundingBox();
+    await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
+    await view.mouse.down();
+    await expect.poll(async () => (await state(view)).dragSoloTabId).toBe(firstId);
+    await expectAudible([]);
+    await view.mouse.up();
+    await expectAudible([secondId]);
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'false');
+    await view.locator('.stream-card').first().focus();
+    await view.keyboard.press('End');
+    await expect.poll(async () => (await state(view)).streams.map((stream) => stream.id)).toEqual([secondId, firstId]);
+    await expect(view.locator('.mute-button').last()).toHaveAttribute('aria-pressed', 'true');
+    await expectAudible([secondId]);
+    await view.locator('body').screenshot({ path: 'test-results/popup-muted.png' });
+    await view.close();
+    view = await popup(app, sources[1], false);
+    await expect(view.locator('.mute-button').last()).toHaveAttribute('aria-pressed', 'true');
+    await expectAudible([secondId]);
+    await view.locator('#bypass').click();
+    await expect(view.locator('#bypass')).toHaveAttribute('aria-pressed', 'true');
+    await expect(view.locator('.mute-button').last()).toBeEnabled();
+    await expectAudible([secondId]);
+    await view.locator('.mute-button').last().click();
+    await expectAudible([firstId, secondId]);
+    await view.locator('.mute-button').last().click();
+    await expectAudible([secondId]);
+    await view.locator('#bypass').click();
+    await expect(view.locator('#bypass')).toHaveAttribute('aria-pressed', 'false');
+    await expectAudible([secondId]);
+    const muted = (await state(view)).streams[1];
+    expect(muted.noiseReductionEnabled).toBe(true);
+    expect(muted.normalizeEnabled).toBe(false);
+    await view.locator('.remove-button').first().click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await expectAudible([]);
+    await view.locator('.remove-button').click();
+    await expect(view.locator('.stream-card')).toHaveCount(0);
+    await view.close();
+    view = await popup(app, sources[0]);
+    await view.locator('#add').click();
+    await expect(view.locator('.mute-button')).toHaveAttribute('aria-pressed', 'false');
+    await expectAudible([firstId]);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
 test('per-tab normalization defaults on and retains its setting across mix controls and popup lifetime', async () => {
   const app = await launch();
   try {
@@ -888,6 +972,11 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('#add-label')).toHaveText(locale === 'ja' ? '追加済み' : 'Added');
       await expect(view.locator('#count')).toHaveText('1 STREAM');
       await expect(view.locator('h3')).toHaveText(title);
+      await expect(view.locator('.mute-button')).toHaveAttribute('aria-label', await localized(view, 'muteStream', [title]));
+      await view.locator('.mute-button').click();
+      await expect(view.locator('.mute-button')).toHaveAttribute('aria-label', await localized(view, 'unmuteStream', [title]));
+      await expect(view.locator('.stream-state')).toHaveText(await localized(view, 'mixMutedState'));
+      await view.locator('.mute-button').click();
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-pressed', 'true');
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeDisable', [title]));
       await view.locator('.normalize-button').click();
@@ -898,7 +987,7 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-label', await localized(view, 'nrDisable', [title]));
       await expect(view.locator('.nr-button')).not.toHaveAttribute('aria-busy');
-      for (const selector of ['.nr-button', '.solo-button', '.normalize-button', '.remove-button']) {
+      for (const selector of ['.nr-button', '.solo-button', '.normalize-button', '.mute-button', '.remove-button']) {
         const button = view.locator(selector);
         await expect(button.locator('svg')).toBeVisible();
         await expect(button).toHaveText('');

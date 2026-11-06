@@ -487,5 +487,27 @@
   },
   "resumeBeforeNormalize": {
     "message": "Normalizeを切り替えるには、先にミックスを再開してください。"
+  },
+  "mute": {
+    "message": "ミュート"
+  },
+  "muteStream": {
+    "message": "$title$ をミュート",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "unmuteStream": {
+    "message": "$title$ のミュートを解除",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "mixMutedState": {
+    "message": "ミュート中"
   }
 }

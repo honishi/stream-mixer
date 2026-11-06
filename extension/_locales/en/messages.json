@@ -487,5 +487,27 @@
   },
   "resumeBeforeNormalize": {
     "message": "Resume the mix before changing normalization."
+  },
+  "mute": {
+    "message": "Mute"
+  },
+  "muteStream": {
+    "message": "Mute $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "unmuteStream": {
+    "message": "Unmute $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "mixMutedState": {
+    "message": "Muted in mixer"
   }
 }

@@ -68,7 +68,7 @@ function getState() {
     streams: cardOrder.map((id) => streams.get(id)).map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
       targetPan: entry.targetPan, panPreference: entry.panPreference,
-      normalizeEnabled: entry.normalizeEnabled,
+      normalizeEnabled: entry.normalizeEnabled, mixMuted: entry.mixMuted,
       noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
     })),
   };
@@ -81,7 +81,7 @@ async function remove(id) {
   cardOrder = cardOrder.filter((entryId) => entryId !== id);
   if (selectedSoloTabId === id) selectedSoloTabId = null;
   if (solo?.tabId === id) endSolo(solo.owner);
-  else applySoloGains();
+  else applyStreamGains();
   panOrder = panOrder.filter((entryId) => entryId !== id);
   entry.stream.getTracks().forEach((track) => { track.onended = null; track.stop(); });
   for (const node of [entry.source, entry.normalize, entry.pan, entry.meter, entry.fade]) node.disconnect();
@@ -110,8 +110,8 @@ function route(entry) {
   entry.pan.disconnect();
   entry.meter.disconnect();
   if (bypassed) {
-    // Keep the captured stream, but bypass every sound-changing stage,
-    // including the master gain and safety limiter. Meter the original stereo.
+    // Keep capture and explicit mute, but bypass processing, master gain,
+    // and safety limiting. Meter the remaining original stereo output.
     entry.source.connect(entry.fade);
     entry.meter.connect(context.destination);
   } else {
@@ -166,26 +166,34 @@ function setNoiseReductionLevel(tabId, level) {
 function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
 
 function audibleGain(entry) {
+  if (entry.mixMuted) return 0;
   const selected = effectiveSoloTabId();
   return selected === null || selected === entry.id ? 1 : 0;
 }
 
-function applySoloGains(timeConstant = 0.02) {
+function applyStreamGains(timeConstant = 0.02) {
   for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, timeConstant);
+}
+
+function toggleMute(tabId) {
+  const entry = streams.get(tabId);
+  if (!entry) throw new Error(t('tabReleased'));
+  entry.mixMuted = !entry.mixMuted;
+  applyStreamGains();
 }
 
 function toggleSolo(tabId) {
   if (bypassed) throw new Error(t('resumeBeforeSolo'));
   if (!streams.has(tabId)) throw new Error(t('tabReleased'));
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
-  applySoloGains();
+  applyStreamGains();
 }
 
 function endSolo(owner) {
   if (!solo || solo.owner !== owner) return;
   solo = undefined;
   clearTimeout(soloTimer);
-  applySoloGains();
+  applyStreamGains();
 }
 
 function beginSolo(tabId, owner) {
@@ -193,7 +201,7 @@ function beginSolo(tabId, owner) {
   if (typeof owner !== 'string' || !owner) throw new Error(t('invalidSolo'));
   solo = { tabId, owner };
   clearTimeout(soloTimer);
-  applySoloGains(0.01);
+  applyStreamGains(0.01);
   // A lease is a fallback for a lost popup/worker connection. The port normally
   // releases solo immediately; a crashed owner cannot leave other streams muted.
   soloTimer = setTimeout(() => {
@@ -261,7 +269,7 @@ async function add(message) {
     const fade = new GainNode(context, { gain: 0 });
     nodes.push(fade);
     const entry = { ...message.tab, stream, source, normalize, pan, meter, fade,
-      color: sequence++ % 6, targetPan: 0, panPreference: null, normalizeEnabled: true,
+      color: sequence++ % 6, targetPan: 0, panPreference: null, normalizeEnabled: true, mixMuted: false,
       noiseReductionEnabled: false, noiseReductionLevel: DEFAULT_NOISE_LEVEL,
       stats: { inputDb: -120, correctionDb: 0, limitingDb: 0, rms: [-120, -120], peak: [-120, -120] },
     };
@@ -313,6 +321,7 @@ async function handle(message) {
       applySettings();
       break;
     case 'BYPASS': await setBypass(message.enabled); break;
+    case 'TOGGLE_MUTE': toggleMute(message.tabId); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
     case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
     case 'TOGGLE_NORMALIZE': toggleNormalization(message.tabId); break;

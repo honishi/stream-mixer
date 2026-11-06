@@ -198,6 +198,7 @@ function renderStream(stream, index) {
     attachCardReorder(card, stream.id);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
+    card.querySelector('.mute-button').addEventListener('click', () => act('TOGGLE_MUTE', { tabId: stream.id }));
     card.querySelector('.normalize-button').addEventListener('click', () => act('TOGGLE_NORMALIZE', { tabId: stream.id }));
     card.querySelector('.nr-level').addEventListener('change', (event) => {
       void act('NR_LEVEL', { tabId: stream.id, level: event.currentTarget.value });
@@ -230,6 +231,11 @@ function renderStream(stream, index) {
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
   const bypassed = latestState.bypassed;
+  const muteButton = card.querySelector('.mute-button');
+  muteButton.setAttribute('aria-pressed', String(stream.mixMuted));
+  muteButton.disabled = busy;
+  muteButton.ariaLabel = t(stream.mixMuted ? 'unmuteStream' : 'muteStream', [stream.title]);
+  muteButton.title = muteButton.ariaLabel;
   const normalizeButton = card.querySelector('.normalize-button');
   normalizeButton.setAttribute('aria-pressed', String(stream.normalizeEnabled));
   normalizeButton.disabled = busy || bypassed;
@@ -256,6 +262,7 @@ function renderStream(stream, index) {
   const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
   let stateKey = 'silentState';
   if (stream.muted) stateKey = 'tabMuted';
+  else if (stream.mixMuted) stateKey = 'mixMutedState';
   else if (soloMuted) stateKey = 'otherSolo';
   else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
   else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
@@ -263,7 +270,7 @@ function renderStream(stream, index) {
   else if (playing) stateKey = 'playingState';
   state.textContent = t(stateKey);
   state.title = state.textContent;
-  state.classList.toggle('playing', playing && !stream.muted);
+  state.classList.toggle('playing', playing && !stream.muted && !stream.mixMuted && !soloMuted);
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;
   card.querySelector('.meter-group').ariaLabel = t('outputLevel', [rms <= -60 ? t('silent') : `${rms.toFixed(0)} dBFS`]);
@@ -280,10 +287,10 @@ function renderStream(stream, index) {
   card.querySelector('.pan-value').textContent = bypassed ? t('bypassMeter') : panText(stream.pan);
   const dot = dots.get(stream.id);
   const visualPan = pendingPans.get(stream.id) ?? stream.targetPan;
-  const activity = !stream.muted && !soloMuted && latestState.audioState === 'running' ? clamp((rms + 50) / 35, 0, 1) : 0;
+  const activity = !stream.muted && !stream.mixMuted && !soloMuted && latestState.audioState === 'running' ? clamp((rms + 50) / 35, 0, 1) : 0;
   dot.style.setProperty('--activity', activity.toFixed(3));
   dot.classList.toggle('sound-active', activity > 0);
-  dot.classList.toggle('solo-muted', soloMuted);
+  dot.classList.toggle('solo-muted', soloMuted || stream.mixMuted);
   dot.textContent = index + 1;
   dot.title = t('panHint', [stream.title, panText(visualPan)]);
   dot.disabled = busy || bypassed || !panWidth();
@@ -429,7 +436,7 @@ async function act(type, payload) {
   busy = true;
   showError(null);
   $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
-  for (const control of document.querySelectorAll('.nr-button, .nr-level, .normalize-button, .solo-button, .remove-button, .position-dot')) control.disabled = true;
+  for (const control of document.querySelectorAll('.nr-button, .nr-level, .normalize-button, .solo-button, .mute-button, .remove-button, .position-dot')) control.disabled = true;
   try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }
