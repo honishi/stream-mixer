@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 
 const streams = new Map();
 const FOCUS_BACKGROUND_GAIN = 10 ** (-18 / 20);
-const notices = [];
+let notices = [];
 let context;
 let master;
 let safety;
@@ -143,7 +143,8 @@ function noiseFailure(entry, node, error) {
     entry.noise = undefined;
     route(entry);
     destroyNoiseNode(node);
-    notices.push(`${entry.title}: Noise reduction was disabled so playback can continue. ${error.message}`);
+    notices.push({ tabId: entry.id,
+      text: `${entry.title}: Noise reduction was disabled so playback can continue. ${error.message}` });
     if (notices.length > 3) notices.shift();
     chrome.runtime.sendMessage({ target: 'worker', type: 'ENGINE_CHANGED' }).catch(() => {});
   }).catch(console.error);
@@ -266,7 +267,7 @@ function setPanPreference(tabId, pan) {
 function notifyFailure(entry, text) {
   operation = operation.then(async () => {
     if (!streams.has(entry.id)) return;
-    notices.push(`${entry.title}: ${text}`);
+    notices.push({ tabId: entry.id, text: `${entry.title}: ${text}` });
     if (notices.length > 3) notices.shift();
     await remove(entry.id);
     chrome.runtime.sendMessage({ target: 'worker', type: 'ENGINE_CHANGED' }).catch(() => {});
@@ -340,8 +341,14 @@ function reorderCard(tabId, beforeTabId) {
 async function handle(message) {
   switch (message.type) {
     case 'START': await add(message); break;
-    case 'STOP': await remove(message.tabId); break;
-    case 'STOP_ALL': for (const id of [...streams.keys()]) await remove(id); break;
+    case 'STOP':
+      await remove(message.tabId);
+      notices = notices.filter((notice) => notice.tabId !== message.tabId);
+      break;
+    case 'STOP_ALL':
+      for (const id of [...streams.keys()]) await remove(id);
+      notices.length = 0;
+      break;
     case 'REORDER': reorderCard(message.tabId, message.beforeTabId); break;
     case 'SETTINGS': settings = sanitizeSettings(message.settings); applySettings(); break;
     case 'PAN_PREFERENCE': setPanPreference(message.tabId, message.pan); break;

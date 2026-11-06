@@ -50,7 +50,8 @@ async function snapshot() {
   const byId = new Map(tabs.map((tab) => [tab.id, tab]));
   const controlledIds = new Set(state.streams.map((stream) => stream.id));
   return { settings, ...state,
-    notices: [...new Set([...(session.notices ?? []), ...state.notices])].slice(-3),
+    notices: [...new Set([...(session.notices ?? []), ...state.notices]
+      .filter((notice) => byId.has(notice.tabId)).map((notice) => notice.text))].slice(-3),
     streams: state.streams.map((stream) => ({ ...stream,
       title: byId.get(stream.id)?.title ?? stream.title,
       muted: byId.get(stream.id)?.mutedInfo?.muted ?? false,
@@ -71,6 +72,8 @@ async function releaseEmptyEngine() {
 async function releaseTab(tabId) {
   if (await hasEngine()) await engine('STOP', { tabId });
   await releaseEmptyEngine();
+  const { notices = [] } = await chrome.storage.session.get('notices');
+  await chrome.storage.session.set({ notices: notices.filter((notice) => notice.tabId !== tabId) });
 }
 
 async function startTab(tabId) {
@@ -106,6 +109,7 @@ async function handle(message) {
     case 'STOP_ALL': return serialize(async () => {
       if (await hasEngine()) await engine('STOP_ALL');
       await releaseEmptyEngine();
+      await chrome.storage.session.remove('notices');
     });
     case 'SETTINGS': return serialize(async () => {
       const settings = sanitizeSettings({ ...await getSettings(), ...message.settings });
@@ -133,7 +137,10 @@ async function handle(message) {
     case 'ENGINE_CHANGED': return serialize(async () => {
       if (await hasEngine()) {
         const state = await engine('STATE');
-        await chrome.storage.session.set({ notices: state.notices });
+        // Capture can end before tabs.onRemoved is delivered. Closing a tab
+        // normally must not leave an audio failure notice in this session.
+        const tabIds = new Set((await chrome.tabs.query({})).map((tab) => tab.id));
+        await chrome.storage.session.set({ notices: state.notices.filter((notice) => tabIds.has(notice.tabId)) });
       }
       await releaseEmptyEngine();
     });

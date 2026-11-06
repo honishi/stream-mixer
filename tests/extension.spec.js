@@ -389,6 +389,10 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
 
     await sources[5].close();
     await expect(view.locator('.stream-card')).toHaveCount(5);
+    await expect(view.locator('#notice')).toBeHidden();
+    expect((await state(view)).notices).toEqual([]);
+    await expect.poll(async () => app.worker.evaluate(async () =>
+      (await chrome.storage.session.get('notices')).notices ?? [])).toEqual([]);
     await view.locator('.remove-button').first().click();
     await expect(view.locator('.stream-card')).toHaveCount(4);
     await expect.poll(async () => {
@@ -1052,30 +1056,124 @@ test('NR asset failure leaves the original audio playing', async () => {
   } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
-test('NR processing failure restores the original audio without releasing capture', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'stream-mixer-failing-nr-'));
+for (const releaseAll of [false, true]) {
+  test(`NR failure notices clear after ${releaseAll ? 'full' : 'individual'} release`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'stream-mixer-failing-nr-'));
+    let app;
+    try {
+      await cp(extensionPath, directory, { recursive: true });
+      const processorPath = join(directory, 'audio/noise-processor.js');
+      const processor = await readFile(processorPath, 'utf8');
+      // Inject a DSP fault after startup while retaining the real WASM graph.
+      await writeFile(processorPath, processor.replace('if (this.frames) this.frames.process',
+        "if (this.frames && (this.testFrames = (this.testFrames ?? 0) + 1) > 750) throw new Error('Injected NR failure');\n      if (this.frames) this.frames.process"));
+      app = await launch('', directory);
+      const other = await source(app, 1);
+      let view = await popup(app, other);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(1);
+      await view.close();
+      const audio = await source(app, 0, 'speech-like');
+      view = await popup(app, audio);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(2);
+      await view.locator('.nr-button').last().click();
+      await expect(view.locator('.nr-button').last()).toHaveAttribute('aria-pressed', 'true');
+      await expect(view.locator('#notice')).toContainText('Noise reduction was disabled so playback can continue.');
+      await expect(view.locator('#notice')).toContainText('Injected NR failure');
+      await expect(view.locator('.nr-button').last()).toHaveAttribute('aria-pressed', 'false');
+      await expect(view.locator('.stream-card')).toHaveCount(2);
+      await expect.poll(async () => Math.max(...(await state(view)).streams[1].rms)).toBeGreaterThan(-50);
+      await expect.poll(async () => app.worker.evaluate(async () =>
+        (await chrome.storage.session.get('notices')).notices?.length ?? 0)).toBe(1);
+      if (releaseAll) await view.locator('#stop-all').click();
+      else await view.locator('.remove-button').last().click();
+      await expect(view.locator('.stream-card')).toHaveCount(releaseAll ? 0 : 1);
+      await expect(view.locator('#notice')).toBeHidden();
+      expect((await state(view)).notices).toEqual([]);
+      await view.close();
+      view = await popup(app, other, false);
+      await expect(view.locator('#notice')).toBeHidden();
+      expect((await state(view)).notices).toEqual([]);
+      expect(await app.worker.evaluate(async () =>
+        (await chrome.storage.session.get('notices')).notices ?? [])).toEqual([]);
+      expect(app.errors).toEqual([]);
+    } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
+  });
+}
+
+test('unexpected audio failure stays visible until its tab closes', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'stream-mixer-capture-failure-'));
   let app;
   try {
     await cp(extensionPath, directory, { recursive: true });
-    const processorPath = join(directory, 'audio/noise-processor.js');
+    const processorPath = join(directory, 'audio/processors.js');
     const processor = await readFile(processorPath, 'utf8');
-    // Inject a DSP fault after startup while retaining the real WASM graph.
-    await writeFile(processorPath, processor.replace('if (this.frames) this.frames.process',
-      "if (this.frames && (this.testFrames = (this.testFrames ?? 0) + 1) > 750) throw new Error('Injected NR failure');\n      if (this.frames) this.frames.process"));
+    await writeFile(processorPath, processor.replace('this.dsp.process(inputs[0]',
+      "if ((this.testBlocks = (this.testBlocks ?? 0) + 1) > 750) throw new Error('Injected audio failure');\n    this.dsp.process(inputs[0]"));
     app = await launch('', directory);
-    const audio = await source(app, 0, 'speech-like');
+    const audio = await source(app);
+    let view = await popup(app, audio);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await expect(view.locator('#notice')).toContainText('Audio processing stopped.');
+    await expect(view.locator('.stream-card')).toHaveCount(0);
+    await expect.poll(async () => app.worker.evaluate(async () =>
+      (await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] })).length)).toBe(0);
+    await view.close();
+    view = await popup(app, audio, false);
+    await expect(view.locator('#notice')).toContainText('Audio processing stopped.');
+    await audio.close();
+    await expect(view.locator('#notice')).toBeHidden();
+    await expect.poll(async () => app.worker.evaluate(async () =>
+      (await chrome.storage.session.get('notices')).notices ?? [])).toEqual([]);
+    expect((await state(view)).notices).toEqual([]);
+  } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test('polling errors clear after recovery without hiding action errors', async () => {
+  const app = await launch();
+  try {
+    const audio = await source(app);
     const view = await popup(app, audio);
     await view.locator('#add').click();
     await expect(view.locator('.stream-card')).toHaveCount(1);
-    await view.locator('.nr-button').click();
-    await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
-    await expect(view.locator('#notice')).toContainText('Noise reduction was disabled so playback can continue.');
-    await expect(view.locator('#notice')).toContainText('Injected NR failure');
-    await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'false');
-    await expect(view.locator('.stream-card')).toHaveCount(1);
-    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(-50);
+    await view.evaluate(() => {
+      const send = chrome.runtime.sendMessage.bind(chrome.runtime);
+      window.failPolling = true;
+      window.failedPolls = 0;
+      window.successfulPolls = 0;
+      chrome.runtime.sendMessage = async (message, ...args) => {
+        if (message.type === 'STATE' && window.failPolling) {
+          window.failedPolls++;
+          throw new Error('Injected polling failure');
+        }
+        if (message.type === 'TOGGLE_SOLO') throw new Error('Injected action failure');
+        const result = await send(message, ...args);
+        if (message.type === 'STATE' && result.ok) window.successfulPolls++;
+        return result;
+      };
+    });
+    await expect(view.locator('#error')).toHaveText('Injected polling failure');
+    await view.evaluate(() => { window.failPolling = false; });
+    await expect(view.locator('#error')).toBeHidden();
+    await view.locator('.solo-button').click();
+    await expect(view.locator('#error')).toHaveText('Injected action failure');
+    const previousPolls = await view.evaluate(() => window.successfulPolls);
+    await expect.poll(() => view.evaluate(() => window.successfulPolls)).toBeGreaterThan(previousPolls + 1);
+    await expect(view.locator('#error')).toHaveText('Injected action failure');
+    await view.evaluate(() => { window.failPolling = true; window.failedPolls = 0; });
+    // Even a later polling failure must not replace the failed action's details.
+    await expect.poll(() => view.evaluate(() => window.failedPolls)).toBeGreaterThan(0);
+    await expect(view.locator('#error')).toHaveText('Injected action failure');
+    await audio.evaluate(() => { document.title = 'Polling recovered'; });
+    await view.evaluate(() => { window.failPolling = false; });
+    await expect(view.locator('h3')).toHaveText('Polling recovered');
+    await expect(view.locator('#error')).toHaveText('Injected action failure');
+    await view.locator('#bypass').click();
+    await expect(view.locator('#error')).toBeHidden();
     expect(app.errors).toEqual([]);
-  } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
+  } finally { await app.context.close(); }
 });
 
 for (const locale of ['en', 'ja']) {

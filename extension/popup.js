@@ -14,6 +14,7 @@ let activeTab;
 let busy = false;
 let polling = false;
 let previewPolling = false;
+let errorSource;
 let candidateKey = '';
 let settingsTimer;
 let saving = Promise.resolve();
@@ -27,7 +28,8 @@ async function request(type, payload = {}) {
   return response.data;
 }
 
-function showError(error) {
+function showError(error, source = 'action') {
+  errorSource = error ? source : undefined;
   $('error').textContent = error?.message ?? '';
   $('error').hidden = !error;
 }
@@ -467,7 +469,10 @@ async function refresh() {
   try {
     if (activeTab) activeTab = await chrome.tabs.get(activeTab.id).catch(() => undefined);
     render(await request('STATE'));
-  } catch (error) { showError(error); }
+    if (errorSource === 'poll') showError(null);
+  } catch (error) {
+    if (errorSource !== 'action') showError(error, 'poll');
+  }
   finally { polling = false; }
 }
 

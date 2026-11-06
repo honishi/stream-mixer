@@ -46,6 +46,8 @@ class NoiseProcessor extends AudioWorkletProcessor {
   }
 
   fail(error) {
+    // A WASM trap or abort may leave this runtime unusable. New nodes must
+    // load a fresh instance; existing nodes keep theirs until disposal.
     runtimePromise = undefined;
     this.destroy();
     this.port.postMessage({ type: 'error', error: error?.message ?? 'Noise reduction failed.' });
