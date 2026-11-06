@@ -122,6 +122,34 @@ async function previewColor(preview) {
   });
 }
 
+async function expectStablePeakLayout(view, audio) {
+  const label = view.locator('.limiter-label').first();
+  await expect(label).toHaveText('');
+  const geometry = () => view.evaluate(() => ({
+    cards: [...document.querySelectorAll('.stream-card')].map((card) => card.getBoundingClientRect().toJSON()),
+    bodyHeight: document.body.getBoundingClientRect().height,
+    scrollHeight: document.querySelector('main').scrollHeight,
+    scrollWidth: document.querySelector('main').scrollWidth,
+  }));
+  const before = await geometry();
+  const originalGain = await audio.evaluate(() => {
+    const previous = gain.gain.value;
+    gain.gain.value = 8;
+    return previous;
+  });
+  try {
+    await expect(label).not.toHaveText('');
+    expect(await geometry()).toEqual(before);
+    expect(await label.evaluate((element) => element.title === element.textContent)).toBe(true);
+    const locale = await view.locator('html').getAttribute('lang');
+    await view.locator('body').screenshot({ path: `test-results/popup-peak-${locale}.png` });
+  } finally {
+    await audio.evaluate((value) => { gain.gain.value = value; }, originalGain);
+  }
+  await expect(label).toHaveText('');
+  expect(await geometry()).toEqual(before);
+}
+
 test('video previews refresh per tab, prefer playback, and disappear when video is unavailable', async () => {
   const app = await launch();
   try {
@@ -332,6 +360,11 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
     expect(current.streams.map((stream) => stream.targetPan)).toEqual(expect.arrayContaining([-1, 1]));
     expect(current.streams[0].correctionDb).toBeGreaterThan(0);
     expect(current.streams[1].correctionDb).toBeLessThan(0);
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'false');
+    await expectStablePeakLayout(view, sources[0]);
+    await view.locator('.normalize-button').first().click();
+    await expect(view.locator('.normalize-button').first()).toHaveAttribute('aria-pressed', 'true');
     const ids = current.streams.map((stream) => stream.id);
     const positions = current.streams.map((stream) => stream.targetPan);
 
@@ -1085,6 +1118,7 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeDisable', [title]));
       await view.locator('.normalize-button').click();
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeEnable', [title]));
+      await expectStablePeakLayout(view, audio);
       expect(await view.locator('h3 b').count()).toBe(0);
       await expect(view.locator('.solo-button')).toHaveAttribute('aria-label', await localized(view, 'soloEnable', [title]));
       await view.locator('.nr-button').click();

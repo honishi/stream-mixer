@@ -291,7 +291,9 @@ function renderStream(stream, index) {
   }
   const correction = Math.abs(stream.correctionDb) < 0.05 ? 0 : stream.correctionDb;
   card.querySelector('.correction').textContent = bypassed ? '—' : `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
-  card.querySelector('.limiter-label').textContent = !bypassed && stream.limitingDb < -0.5 ? t('limiting', [stream.limitingDb.toFixed(1)]) : '';
+  const limiterLabel = card.querySelector('.limiter-label');
+  limiterLabel.textContent = !bypassed && stream.limitingDb < -0.5 ? t('limiting', [stream.limitingDb.toFixed(1)]) : '';
+  limiterLabel.title = limiterLabel.textContent;
   card.querySelector('.pan-track i').style.left = `${((bypassed ? 0 : stream.pan) + 1) * 50}%`;
   card.querySelector('.pan-value').textContent = bypassed ? t('bypassMeter') : panText(stream.pan);
   const dot = dots.get(stream.id);
