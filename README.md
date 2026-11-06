@@ -206,6 +206,29 @@ npm run test:browser
 
 ブラウザテストは生成した音声による機能検証です。実際の配信の聞き心地、配信サイト固有の制約、長時間利用の負荷は別途確認してください。
 
+### GitHub Releases へのリリース
+
+`honishi/stream-mixer` に `v1.2.3` 形式のタグを push すると、GitHub Actions の `Release` workflow が単体テスト・静的チェック・Chromium のブラウザテストを実行し、成功した場合に GitHub Release を公開します。ZIP と SHA-256 チェックサムを添付し、リリースノートを自動生成します。認証には標準の `GITHUB_TOKEN` を使うため、追加の Secret は不要です。
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+タグには workflow を含むコミットを指定してください。`v1.2.3-rc.1` のようなタグはプレリリースとなり、Latest には設定しません。各数値は0〜65535、全桁0や先頭の余分な0は不可です。ビルドメタデータ（`+build.1`）は扱いません。
+
+添付する `stream-mixer-v0.1.0.zip` は、直下に `manifest.json` がある拡張本体です。展開後のフォルダーを Chrome の「パッケージ化されていない拡張機能を読み込む」で指定できます。RNNoise の WASM・ライセンス・翻訳・アイコンも含みます。Chrome Web Store への公開は行いません。
+
+ZIP 内の `manifest.version` はタグの数値部分、`version_name` は `v` を除いたタグ全体に置き換えます。リポジトリの manifest や package.json は書き換えません。プレリリースと正式版で数値部分が同じ場合、Chrome 上のバージョン比較では同じ扱いになります。
+
+ローカルで配布物だけ確認する場合は、Git と `zip` コマンドが使える環境で実行します。
+
+```sh
+npm run release:package -- v0.1.0
+```
+
+`dist/` に ZIP とチェックサムを生成します。梱包対象は Git 管理下の `extension/` 内のファイルです。新規ファイルは先に Git に追加してください。テストには `unzip` も必要です。既存の同名リリースは上書きしません。公開に失敗してドラフトが残った場合は、その内容を確認してドラフトを削除してから workflow を再実行してください。
+
 ### 翻訳の追加
 
 `extension/_locales/en/messages.json` を新しい言語のディレクトリにコピーして翻訳し、`locale` の値をその言語コードにします。既存キーと `placeholders` の対応を維持し、`npm test` とブラウザテストで表示を確認してください。翻訳に HTML は使用せず、表示時は文字列として扱います。
