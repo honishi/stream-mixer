@@ -55,7 +55,10 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 .nr-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .nr-level { width: 65px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); font-size: 10px; cursor: pointer; }
 .nr-level:disabled { opacity: .4; cursor: default; }
-.stream-preview { display: block; width: 100%; height: 112px; object-fit: contain; margin-top: 10px; border-radius: 6px; background: #10130f; }
+.stream-visual { position: relative; flex-shrink: 0; }
+.stream-preview { display: block; width: 54px; height: 30px; object-fit: contain; border-radius: 6px; background: #10130f; }
+.stream-visual:has(.stream-preview:not([hidden])) .stream-number { position: absolute; left: 2px; bottom: 2px; width: auto; height: auto; padding: 1px 3px; border-radius: 3px; background: #141714e6; font-size: 9px; }
+.stream-state { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .remove-button { border: none; background: none; color: #97a089; font-size: 20px; padding: 2px 3px 5px; }.remove-button:hover { color: var(--text); }
 .stream-readings { display: grid; grid-template-columns: minmax(0, 1fr) 85px 65px; gap: 13px; margin-top: 14px; }.reading-label { color: var(--muted); font-size: 8px; letter-spacing: .8px; margin-bottom: 8px; }.level-value { float: right; font-size: 8px; letter-spacing: 0; color: #c3cbb7; font-variant-numeric: tabular-nums; }
 .meter-row { display: flex; align-items: center; gap: 5px; margin: 6px 0; }.meter-row > span { font-size: 7px; color: #89947a; }.meter-track { position: relative; background: #30382a; height: 5px; border-radius: 1px; overflow: hidden; flex: 1; }.meter-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--stream-color), var(--stream-color) 80%, #f2cc82); transition: width .12s linear; }.peak-tick { position: absolute; top: 0; width: 1px; height: 100%; background: #f4f5e8; opacity: .75; }

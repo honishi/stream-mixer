@@ -149,8 +149,14 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     view = await popup(app, second);
     await view.locator('#add').click();
     await expect(view.locator('.stream-preview').nth(1)).toBeHidden();
+    const heightWithoutPreview = await view.locator('.stream-card').nth(1).evaluate((card) => card.getBoundingClientRect().height);
     await addTestVideo(second, { color: '#0000ff' });
     await expect.poll(() => previewColor(view.locator('.stream-preview').nth(1))).toEqual([0, 0, 1]);
+    const heightWithPreview = await view.locator('.stream-card').nth(1).evaluate((card) => card.getBoundingClientRect().height);
+    expect(heightWithPreview).toBe(heightWithoutPreview);
+    const previewSize = await view.locator('.stream-preview').nth(1).boundingBox();
+    expect(previewSize.width).toBeLessThanOrEqual(54);
+    expect(previewSize.height).toBeLessThanOrEqual(30);
     await expect.poll(() => previewColor(view.locator('.stream-preview').first())).toEqual([0, 1, 0]);
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.max(...stream.rms) > -55)).toBe(true);
     expect(await view.evaluate(() => document.body.scrollWidth)).toBe(440);

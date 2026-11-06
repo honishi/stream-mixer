@@ -191,6 +191,7 @@ function renderStream(stream, index) {
   else if (bypassed) stateKey = 'bypassState';
   else if (playing) stateKey = 'playingState';
   state.textContent = t(stateKey);
+  state.title = state.textContent;
   state.classList.toggle('playing', playing && !stream.muted);
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;

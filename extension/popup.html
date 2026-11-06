@@ -60,7 +60,8 @@
   <template id="stream-template">
     <article class="stream-card">
       <div class="stream-heading">
-        <span class="stream-number"></span><div class="stream-name"><h3></h3><span class="stream-state"></span></div>
+        <div class="stream-visual"><img class="stream-preview" alt="" hidden><span class="stream-number"></span></div>
+        <div class="stream-name"><h3></h3><span class="stream-state"></span></div>
         <div class="nr-controls">
           <button class="nr-button" type="button" aria-pressed="false" data-i18n="nr">NR</button>
           <select class="nr-level" aria-label="Noise reduction strength" data-i18n-aria-label="nrStrength">
@@ -72,7 +73,6 @@
         <button class="solo-button" type="button" aria-pressed="false" data-i18n="solo">Solo</button>
         <button class="remove-button" title="Release tab" data-i18n-title="remove">×</button>
       </div>
-      <img class="stream-preview" alt="" hidden>
       <div class="stream-readings">
         <div class="meter-group"><div class="reading-label"><span data-i18n="output">OUTPUT</span> <span class="level-value"></span></div>
           <div class="meter-row"><span>L</span><div class="meter-track"><div class="meter-fill left"></div><i class="peak-tick left"></i></div></div>
