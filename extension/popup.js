@@ -10,6 +10,7 @@ const dirtySettings = new Set();
 let activeTab;
 let busy = false;
 let polling = false;
+let previewPolling = false;
 let candidateKey = '';
 let settingsTimer;
 let saving = Promise.resolve();
@@ -159,6 +160,7 @@ function renderStream(stream, index) {
   const heading = card.querySelector('h3');
   heading.textContent = stream.title;
   heading.title = stream.title;
+  card.querySelector('.stream-preview').alt = t('videoSnapshot', [stream.title]);
   card.querySelector('.remove-button').ariaLabel = t('removeTab', [stream.title]);
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
@@ -318,6 +320,31 @@ async function refresh() {
   finally { polling = false; }
 }
 
+async function refreshPreviews() {
+  if (previewPolling || !cards.size) return;
+  previewPolling = true;
+  const requestedCards = new Map(cards);
+  try {
+    const snapshots = await request('VIDEO_SNAPSHOTS');
+    for (const { id, image } of snapshots) {
+      const card = requestedCards.get(id);
+      if (!card || cards.get(id) !== card) continue;
+      const preview = card.querySelector('.stream-preview');
+      preview.hidden = !image;
+      if (image) {
+        if (preview.getAttribute('src') !== image) preview.src = image;
+      } else preview.removeAttribute('src');
+    }
+  } catch {
+    // Thumbnails are optional; failures must not interrupt audio controls.
+    for (const card of requestedCards.values()) {
+      const preview = card.querySelector('.stream-preview');
+      preview.hidden = true;
+      preview.removeAttribute('src');
+    }
+  } finally { previewPolling = false; }
+}
+
 async function act(type, payload) {
   if (busy) return;
   busy = true;
@@ -367,7 +394,12 @@ document.addEventListener('keydown', (event) => {
 async function init() {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   await refresh();
+  void refreshPreviews();
   const timer = setInterval(refresh, 200);
-  window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
+  const previewTimer = setInterval(refreshPreviews, 3000);
+  window.addEventListener('pagehide', () => {
+    clearInterval(timer);
+    clearInterval(previewTimer);
+  }, { once: true });
 }
 init().catch(showError);

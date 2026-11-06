@@ -1,5 +1,6 @@
 import { t, getMessageBundle } from './shared/i18n.js';
 import { sanitizeSettings } from './shared/settings.js';
+import { getVideoSnapshots } from './video-snapshot.js';
 
 const OFFSCREEN_URL = chrome.runtime.getURL('offscreen.html');
 let mutation = Promise.resolve();
@@ -88,6 +89,11 @@ async function startTab(tabId) {
 async function handle(message) {
   switch (message.type) {
     case 'STATE': return serialize(snapshot);
+    case 'VIDEO_SNAPSHOTS': {
+      const streams = await serialize(async () => (await hasEngine()) ? (await engine('STATE')).streams : []);
+      // Pixel extraction must not hold up audio controls or meter updates.
+      return getVideoSnapshots(streams);
+    }
     case 'START': return serialize(() => startTab(message.tabId));
     case 'STOP': return serialize(async () => {
       if (await hasEngine()) await engine('STOP', { tabId: message.tabId });

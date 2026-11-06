@@ -446,5 +446,13 @@
   },
   "invalidNrLevel": {
     "message": "ノイズリダクションの強さが正しくありません。"
+  },
+  "videoSnapshot": {
+    "message": "$title$ の動画スナップショット",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
   }
 }

@@ -75,6 +75,123 @@ async function state(popupPage) {
   return result.data;
 }
 
+async function addTestVideo(page, { color, width = 320, height = 180, nested = false, paused = false }) {
+  await page.evaluate(async ({ color, width, height, nested, paused }) => {
+    let root = document.body;
+    if (nested) {
+      const frame = document.createElement('iframe');
+      frame.srcdoc = '<!doctype html><body></body>';
+      const loaded = new Promise((resolve) => { frame.onload = resolve; });
+      document.body.append(frame);
+      await loaded;
+      const host = frame.contentDocument.createElement('div');
+      frame.contentDocument.body.append(host);
+      root = host.attachShadow({ mode: 'open' });
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    const video = document.createElement('video');
+    video.width = width;
+    video.height = height;
+    video.muted = true;
+    video.srcObject = canvas.captureStream(5);
+    root.append(video);
+    const fixture = { video, color };
+    (window.testVideos ??= []).push(fixture);
+    function paint() {
+      context.fillStyle = fixture.color;
+      context.fillRect(0, 0, width, height);
+    }
+    paint();
+    fixture.timer = setInterval(paint, 100);
+    await video.play();
+    if (paused) video.pause();
+  }, { color, width, height, nested, paused });
+}
+
+async function previewColor(preview) {
+  return preview.evaluate((image) => {
+    if (!image.complete || !image.naturalWidth) return [];
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0, 1, 1);
+    return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map((value) => Math.round(value / 255));
+  });
+}
+
+test('video previews refresh per tab, prefer playback, and disappear when video is unavailable', async () => {
+  const app = await launch();
+  try {
+    const first = await source(app);
+    await addTestVideo(first, { color: '#0000ff', paused: true });
+    await addTestVideo(first, { color: '#ff0000', width: 160, height: 90, nested: true });
+    const ungranted = await popup(app, first, false);
+    const inaccessible = await ungranted.evaluate(async (url) => {
+      const [tab] = await chrome.tabs.query({ url });
+      const { getVideoSnapshots } = await import(chrome.runtime.getURL('video-snapshot.js'));
+      return getVideoSnapshots([{ id: tab.id }]);
+    }, first.url());
+    expect(inaccessible[0].image).toBeNull();
+    await ungranted.close();
+    let view = await popup(app, first);
+    await view.locator('#add').click();
+    const preview = view.locator('.stream-preview').first();
+    await expect.poll(() => previewColor(preview)).toEqual([1, 0, 0]);
+    expect(await preview.evaluate((image) => image.naturalWidth)).toBeLessThanOrEqual(240);
+    await first.evaluate(() => { window.testVideos[1].color = '#00ff00'; });
+    await expect.poll(() => previewColor(preview)).toEqual([0, 1, 0]);
+    await view.close();
+
+    const second = await source(app, 1);
+    view = await popup(app, second);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-preview').nth(1)).toBeHidden();
+    await addTestVideo(second, { color: '#0000ff' });
+    await expect.poll(() => previewColor(view.locator('.stream-preview').nth(1))).toEqual([0, 0, 1]);
+    await expect.poll(() => previewColor(view.locator('.stream-preview').first())).toEqual([0, 1, 0]);
+    await expect.poll(async () => (await state(view)).streams.every((stream) => Math.max(...stream.rms) > -55)).toBe(true);
+    expect(await view.evaluate(() => document.body.scrollWidth)).toBe(440);
+    await view.locator('body').screenshot({ path: 'test-results/popup-video.png' });
+
+    await first.evaluate(() => {
+      for (const fixture of window.testVideos) {
+        fixture.video.remove();
+        fixture.video.srcObject.getTracks().forEach((track) => track.stop());
+        clearInterval(fixture.timer);
+      }
+    });
+    await expect(view.locator('.stream-preview').first()).toBeHidden();
+    await expect(view.locator('.stream-preview').first()).not.toHaveAttribute('src');
+    await expect(view.locator('#error')).toBeHidden();
+
+    // No background capture loop: once the popup closes, injection stops.
+    await app.worker.evaluate(() => {
+      const execute = chrome.scripting.executeScript.bind(chrome.scripting);
+      globalThis.previewCalls = 0;
+      chrome.scripting.executeScript = (...args) => { globalThis.previewCalls++; return execute(...args); };
+    });
+    await view.close();
+    // triggerAction can also leave a native toolbar popup; close its document.
+    const { targetInfos } = await app.browserCdp.send('Target.getTargets');
+    for (const target of targetInfos.filter((target) => target.url === `chrome-extension://${app.id}/popup.html`)) {
+      await app.browserCdp.send('Target.closeTarget', { targetId: target.targetId });
+    }
+    const before = await app.worker.evaluate(() => globalThis.previewCalls);
+    await new Promise((resolve) => setTimeout(resolve, 3500));
+    expect(await app.worker.evaluate(() => globalThis.previewCalls)).toBe(before);
+    view = await popup(app, second, false);
+    await expect.poll(() => previewColor(view.locator('.stream-preview').nth(1))).toEqual([0, 0, 1]);
+    await view.locator('.remove-button').nth(1).click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    const snapshots = await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'VIDEO_SNAPSHOTS' }));
+    expect(snapshots.data).toEqual([{ id: (await state(view)).streams[0].id, image: null }]);
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
 test('six captured tabs, live meters, silence, popup/worker lifetime, removal and cleanup', async () => {
   const app = await launch();
   try {

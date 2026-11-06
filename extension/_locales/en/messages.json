@@ -446,5 +446,13 @@
   },
   "invalidNrLevel": {
     "message": "Invalid noise reduction strength."
+  },
+  "videoSnapshot": {
+    "message": "Video snapshot of $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
   }
 }
