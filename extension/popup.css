@@ -1,10 +1,10 @@
 :root { color-scheme: dark; --bg: #141714; --panel: #1d211c; --line: #323a2e; --text: #eef0e7; --muted: #a0a794; --accent: #c1ed8b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif; font-size: 12px; }
 * { box-sizing: border-box; }
 body { width: 440px; margin: 0; background: var(--bg); color: var(--text); }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .4; }
-button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 [hidden] { display: none !important; }
 .topbar { height: 52px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; }
@@ -52,6 +52,9 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 .solo-button, .nr-button { appearance: none; flex-shrink: 0; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px; background: transparent; color: var(--muted); font-size: 10px; }
 .solo-button:hover:enabled, .nr-button:hover:enabled { border-color: var(--stream-color); }
 .solo-button[aria-pressed=true], .nr-button[aria-pressed=true] { border-color: var(--stream-color); background: var(--stream-color); color: var(--bg); }
+.nr-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nr-level { width: 65px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); font-size: 10px; cursor: pointer; }
+.nr-level:disabled { opacity: .4; cursor: default; }
 .remove-button { border: none; background: none; color: #97a089; font-size: 20px; padding: 2px 3px 5px; }.remove-button:hover { color: var(--text); }
 .stream-readings { display: grid; grid-template-columns: minmax(0, 1fr) 85px 65px; gap: 13px; margin-top: 14px; }.reading-label { color: var(--muted); font-size: 8px; letter-spacing: .8px; margin-bottom: 8px; }.level-value { float: right; font-size: 8px; letter-spacing: 0; color: #c3cbb7; font-variant-numeric: tabular-nums; }
 .meter-row { display: flex; align-items: center; gap: 5px; margin: 6px 0; }.meter-row > span { font-size: 7px; color: #89947a; }.meter-track { position: relative; background: #30382a; height: 5px; border-radius: 1px; overflow: hidden; flex: 1; }.meter-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--stream-color), var(--stream-color) 80%, #f2cc82); transition: width .12s linear; }.peak-tick { position: absolute; top: 0; width: 1px; height: 100%; background: #f4f5e8; opacity: .75; }

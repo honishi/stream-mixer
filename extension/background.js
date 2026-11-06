@@ -110,9 +110,10 @@ async function handle(message) {
     case 'RESET_PANS':
     case 'TOGGLE_SOLO':
     case 'TOGGLE_NR':
+    case 'NR_LEVEL':
     case 'BYPASS': return serialize(async () => {
       if (!(await hasEngine())) throw new Error(t('addFirst'));
-      return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled });
+      return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled, level: message.level });
     });
     case 'ENGINE_CHANGED': return serialize(async () => {
       if (await hasEngine()) {

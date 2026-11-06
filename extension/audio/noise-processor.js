@@ -13,6 +13,7 @@ class NoiseProcessor extends AudioWorkletProcessor {
     super();
     this.destroyed = false;
     this.suspended = false;
+    this.mix = options.processorOptions.mix;
     this.port.onmessage = ({ data }) => {
       if (data.type === 'destroy') {
         this.destroy();
@@ -23,6 +24,7 @@ class NoiseProcessor extends AudioWorkletProcessor {
         this.suspended = data.value;
         this.frames?.reset();
       }
+      if (data.type === 'mix') this.frames?.setMix(data.value);
     };
     this.initialize(options.processorOptions.wasmBinary).catch((error) => this.fail(error));
   }
@@ -35,7 +37,7 @@ class NoiseProcessor extends AudioWorkletProcessor {
     const states = [];
     try {
       for (let channel = 0; channel < 2; channel++) states.push(runtime.createDenoiseState());
-      this.frames = new NoiseFrames(states, runtime.frameSize);
+      this.frames = new NoiseFrames(states, runtime.frameSize, this.mix);
     } catch (error) {
       for (const state of states) state.destroy();
       throw error;

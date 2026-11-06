@@ -420,5 +420,31 @@
   },
   "offscreenPurpose": {
     "message": "popup を閉じても、選択したタブの音量補正・パン・ノイズ抑制を継続します。"
+  },
+  "nrStrength": {
+    "message": "NR の強さ"
+  },
+  "nrStrengthLabel": {
+    "message": "$title$ の NR の強さ",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrStrengthHint": {
+    "message": "発話が途切れる場合は「小」へ。大きくするほどノイズ抑制が強まり、「大」は従来と同じ強さです。"
+  },
+  "nrLow": {
+    "message": "小"
+  },
+  "nrMedium": {
+    "message": "中"
+  },
+  "nrHigh": {
+    "message": "大"
+  },
+  "invalidNrLevel": {
+    "message": "ノイズリダクションの強さが正しくありません。"
   }
 }

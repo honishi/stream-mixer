@@ -2,6 +2,7 @@ import { t, setMessages } from './shared/i18n.js';
 import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 import { preferredPanPositions, withPanPreference } from './shared/panning.js';
 import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
+import { DEFAULT_NOISE_LEVEL, NOISE_LEVELS } from './shared/noise.js';
 
 const streams = new Map();
 const notices = [];
@@ -53,7 +54,8 @@ function getState() {
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
     streams: [...streams.values()].map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
-      targetPan: entry.targetPan, panPreference: entry.panPreference, noiseReductionEnabled: entry.noiseReductionEnabled, ...entry.stats,
+      targetPan: entry.targetPan, panPreference: entry.panPreference,
+      noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
     })),
   };
 }
@@ -125,7 +127,7 @@ async function toggleNoiseReduction(tabId) {
   const enabled = !entry.noiseReductionEnabled;
   let node;
   // Leave the original path intact until the model has initialized successfully.
-  if (enabled) node = await createNoiseNode(context, (error) => noiseFailure(entry, node, error));
+  if (enabled) node = await createNoiseNode(context, (error) => noiseFailure(entry, node, error), NOISE_LEVELS[entry.noiseReductionLevel]);
   entry.fade.gain.cancelScheduledValues(context.currentTime);
   entry.fade.gain.setTargetAtTime(0, context.currentTime, 0.004);
   await new Promise((resolve) => setTimeout(resolve, 25));
@@ -135,6 +137,15 @@ async function toggleNoiseReduction(tabId) {
   route(entry);
   entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, 0.008);
   destroyNoiseNode(previous);
+}
+
+function setNoiseReductionLevel(tabId, level) {
+  const entry = streams.get(tabId);
+  if (!entry) throw new Error(t('tabReleased'));
+  if (bypassed) throw new Error(t('resumeBeforeNr'));
+  if (typeof level !== 'string' || !Object.hasOwn(NOISE_LEVELS, level)) throw new Error(t('invalidNrLevel'));
+  entry.noiseReductionLevel = level;
+  entry.noise?.port.postMessage({ type: 'mix', value: NOISE_LEVELS[level] });
 }
 
 function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
@@ -235,7 +246,8 @@ async function add(message) {
     const fade = new GainNode(context, { gain: 0 });
     nodes.push(fade);
     const entry = { ...message.tab, stream, source, normalize, pan, meter, fade,
-      color: sequence++ % 6, targetPan: 0, panPreference: null, noiseReductionEnabled: false,
+      color: sequence++ % 6, targetPan: 0, panPreference: null,
+      noiseReductionEnabled: false, noiseReductionLevel: DEFAULT_NOISE_LEVEL,
       stats: { inputDb: -120, correctionDb: 0, limitingDb: 0, rms: [-120, -120], peak: [-120, -120] },
     };
     normalize.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
@@ -276,6 +288,7 @@ async function handle(message) {
     case 'BYPASS': await setBypass(message.enabled); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
     case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
+    case 'NR_LEVEL': setNoiseReductionLevel(message.tabId, message.level); break;
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;

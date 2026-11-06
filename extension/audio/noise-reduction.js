@@ -26,7 +26,7 @@ export function destroyNoiseNode(node) {
   node.port.postMessage({ type: 'destroy' });
 }
 
-export async function createNoiseNode(context, onFailure) {
+export async function createNoiseNode(context, onFailure, mix) {
   if (context.sampleRate !== 48000) throw new Error(t('nrSampleRate'));
   if (!modules.has(context)) {
     modules.set(context, context.audioWorklet.addModule(new URL('./noise-processor.js', import.meta.url)).catch((error) => {
@@ -36,7 +36,7 @@ export async function createNoiseNode(context, onFailure) {
   }
   const [, wasmBinary] = await Promise.all([modules.get(context), getBinary()]);
   const node = new AudioWorkletNode(context, 'stream-noise-reduction', {
-    outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit', processorOptions: { wasmBinary },
+    outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit', processorOptions: { wasmBinary, mix },
   });
   try {
     await new Promise((resolve, reject) => {

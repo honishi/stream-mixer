@@ -43,3 +43,66 @@ test('reset clears buffered audio and each channel state is destroyed once', () 
   adapter.destroy();
   assert.equal(destroyed, 2);
 });
+
+// Model the RNNoise lookahead independently from the adapter's render buffering.
+function delayedState(scale = 1) {
+  let previous = new Float32Array(480);
+  return {
+    processFrame(frame) {
+      const next = frame.slice();
+      for (let i = 0; i < frame.length; i++) frame[i] = previous[i] * scale;
+      previous = next;
+    },
+    destroy() {},
+  };
+}
+
+test('partial NR aligns dry and processed audio without echoes or doubled peaks', () => {
+  for (const mix of [0.25, 0.5, 1]) {
+    const adapter = new NoiseFrames([delayedState(), delayedState()], 480, mix);
+    const result = [[], []];
+    for (let offset = 0; offset < 4096; offset += 128) {
+      const input = [0, 1].map((c) => Float32Array.from({ length: 128 }, (_, i) => {
+        const n = offset + i;
+        return (c ? -0.5 : 1) * (n === 37 ? 0.8 : n > 100 ? Math.sin(n * 0.27) * 0.3 : 0);
+      }));
+      const output = [new Float32Array(128), new Float32Array(128)];
+      adapter.process(input, output);
+      output.forEach((channel, c) => result[c].push(...channel));
+    }
+    for (let i = 0; i < result[0].length; i++) {
+      const n = i - 960;
+      const expected = n === 37 ? 0.8 : n > 100 ? Math.sin(n * 0.27) * 0.3 : 0;
+      assert.ok(Math.abs(result[0][i] - expected) < 1e-7, `${mix} wet at sample ${i}`);
+      assert.ok(Math.abs(result[1][i] + expected * 0.5) < 1e-7);
+    }
+  }
+});
+
+test('Low and Medium retain speech discarded by the model; live changes ramp smoothly', () => {
+  const adapter = new NoiseFrames([delayedState(0), delayedState(0)], 480, 0.5);
+  const input = [new Float32Array(128).fill(0.4), new Float32Array(128).fill(-0.2)];
+  const output = [new Float32Array(128), new Float32Array(128)];
+  for (let i = 0; i < 20; i++) adapter.process(input, output);
+  assert.ok(Math.abs(output[0][127] - 0.2) < 1e-7);
+  adapter.setMix(0.25);
+  let previous = output[0][127];
+  for (let i = 0; i < 8; i++) {
+    adapter.process(input, output);
+    for (const sample of output[0]) {
+      assert.ok(sample >= previous - 1e-7 && sample - previous < 0.001, 'no level-change discontinuity');
+      previous = sample;
+    }
+  }
+  assert.ok(Math.abs(previous - 0.3) < 1e-7);
+  assert.ok(Math.abs(output[1][127] + 0.15) < 1e-7);
+  adapter.setMix(1);
+  for (let i = 0; i < 8; i++) adapter.process(input, output);
+  assert.equal(output[0][127], 0, 'High retains the original fully processed behavior');
+  adapter.setMix(0.25);
+  adapter.reset();
+  for (let i = 0; i < 12; i++) {
+    adapter.process([], output);
+    assert.ok(output.every((channel) => channel.every((sample) => sample === 0)), 'reset flushes buffered dry audio');
+  }
+});

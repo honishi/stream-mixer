@@ -420,5 +420,31 @@
   },
   "offscreenPurpose": {
     "message": "Keep processing audio from selected tabs when the popup closes."
+  },
+  "nrStrength": {
+    "message": "Noise reduction strength"
+  },
+  "nrStrengthLabel": {
+    "message": "Noise reduction strength for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrStrengthHint": {
+    "message": "Choose Low if speech cuts out. Higher levels suppress more noise; High matches the original strength."
+  },
+  "nrLow": {
+    "message": "Low"
+  },
+  "nrMedium": {
+    "message": "Medium"
+  },
+  "nrHigh": {
+    "message": "High"
+  },
+  "invalidNrLevel": {
+    "message": "Invalid noise reduction strength."
   }
 }

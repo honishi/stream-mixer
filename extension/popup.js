@@ -134,6 +134,9 @@ function renderStream(stream, index) {
     card = $('stream-template').content.firstElementChild.cloneNode(true);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
+    card.querySelector('.nr-level').addEventListener('change', (event) => {
+      void act('NR_LEVEL', { tabId: stream.id, level: event.currentTarget.value });
+    });
     card.querySelector('.nr-button').addEventListener('click', async (event) => {
       const button = event.currentTarget;
       if (busy) return;
@@ -165,6 +168,11 @@ function renderStream(stream, index) {
   nrButton.disabled = busy || bypassed;
   nrButton.ariaLabel = t(stream.noiseReductionEnabled ? 'nrDisable' : 'nrEnable', [stream.title]);
   nrButton.title = bypassed ? t('nrBypassed') : t('nrHint');
+  const nrLevel = card.querySelector('.nr-level');
+  if (!busy) nrLevel.value = stream.noiseReductionLevel;
+  nrLevel.disabled = busy || bypassed;
+  nrLevel.ariaLabel = t('nrStrengthLabel', [stream.title]);
+  nrLevel.title = bypassed ? t('nrBypassed') : t('nrStrengthHint');
   const soloButton = card.querySelector('.solo-button');
   const selectedSolo = latestState.selectedSoloTabId === stream.id;
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
@@ -315,7 +323,7 @@ async function act(type, payload) {
   busy = true;
   showError(null);
   $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
-  for (const control of document.querySelectorAll('.nr-button, .solo-button, .remove-button, .position-dot')) control.disabled = true;
+  for (const control of document.querySelectorAll('.nr-button, .nr-level, .solo-button, .remove-button, .position-dot')) control.disabled = true;
   try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }
