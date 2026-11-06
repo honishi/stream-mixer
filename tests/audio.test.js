@@ -67,9 +67,9 @@ test('pan positions stay symmetric with centered mono and bounded extremes', () 
   assert.deepEqual(panPositions(0, 1), []);
   assert.deepEqual(panPositions(1, 1), [0]);
   for (let count = 2; count <= 6; count++) {
-    const positions = panPositions(count, 1);
-    assert.equal(positions[0], -0.85);
-    assert.equal(positions.at(-1), 0.85);
+    const positions = panPositions(count, DEFAULT_SETTINGS.spread);
+    assert.equal(positions[0], -1);
+    assert.equal(positions.at(-1), 1);
     assert.ok(Math.abs(positions.reduce((a, b) => a + b, 0)) < 1e-9);
   }
   assert.ok(panPositions(6, 0).every((pan) => pan === 0));
@@ -79,5 +79,5 @@ test('stored settings cannot inject invalid gain or pan values', () => {
   assert.deepEqual(sanitizeSettings(), DEFAULT_SETTINGS);
   assert.deepEqual(sanitizeSettings(null), DEFAULT_SETTINGS);
   assert.deepEqual(sanitizeSettings({ volume: 5, strength: -1, spread: NaN, ignored: true }),
-    { volume: 1, strength: 0, spread: 0.65 });
+    { volume: 1, strength: 0, spread: 1 });
 });

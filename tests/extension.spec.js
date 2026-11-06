@@ -99,7 +99,7 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
     }
     let current = await state(view);
     expect(current.audioState).toBe('running');
-    expect(current.streams.map((stream) => stream.targetPan)).toEqual(expect.arrayContaining([-0.5525, 0.5525]));
+    expect(current.streams.map((stream) => stream.targetPan)).toEqual(expect.arrayContaining([-1, 1]));
     expect(current.streams[0].correctionDb).toBeGreaterThan(0);
     expect(current.streams[1].correctionDb).toBeLessThan(0);
     const ids = current.streams.map((stream) => stream.id);
@@ -190,7 +190,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     let dot = await first.boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await view.mouse.move(field.x + field.width * (0.5 + 0.44 * 0.5), dot.y + dot.height / 2, { steps: 8 });
+    await view.mouse.move(field.x + field.width * (0.5 + 0.44 * 0.9), dot.y + dot.height / 2, { steps: 8 });
     // Polling must not snap the actively dragged marker back or modify audio.
     await view.waitForTimeout(250);
     await expect(first).toHaveClass(/dragging/);
@@ -212,9 +212,9 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
       requestAnimationFrame(sample);
     });
     await view.mouse.up();
-    await expect.poll(async () => (await state(view)).streams[0].targetPan).toBeGreaterThan(0.48);
+    await expect.poll(async () => (await state(view)).streams[0].targetPan).toBeGreaterThan(0.88);
     let mixed = await state(view);
-    expect(mixed.streams[0].targetPan).not.toBe(0.5);
+    expect(mixed.streams[0].targetPan).not.toBe(0.9);
     expect(mixed.streams[1].targetPan).toBeLessThan(0);
     expect(mixed.streams[2].targetPan).toBe(0);
     await expect(view.locator('#reset-pans')).toBeVisible();
@@ -291,7 +291,12 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
 
     await view.locator('.position-dot').first().focus();
     await view.keyboard.press('Home');
-    await expect.poll(async () => (await state(view)).streams[0].targetPan).toBeLessThan(0);
+    await expect.poll(async () => (await state(view)).streams[0].targetPan).toBe(-1);
+    await expect.poll(async () => (await state(view)).streams[0].rms[1]).toBeLessThan(-60);
+    await view.locator('.position-dot').first().focus();
+    await view.keyboard.press('End');
+    await expect.poll(async () => (await state(view)).streams[0].targetPan).toBe(1);
+    await expect.poll(async () => (await state(view)).streams[0].rms[0]).toBeLessThan(-60);
     await view.locator('#reset-pans').click();
     await expect(view.locator('#reset-pans')).toBeHidden();
     expect((await state(view)).streams.map((stream) => stream.targetPan)).toEqual(initial);

@@ -6,6 +6,11 @@ import { clamp, panPositions } from './settings.js';
 export function preferredPanPositions(entries, spread) {
   if (!entries.length) return [];
   const width = panPositions(2, spread)[1];
+  // An explicit edge request must also reach the edge for a single stream,
+  // whose automatic center slot would otherwise pull it 20% inward.
+  if (entries.length === 1 && Math.abs(entries[0].panPreference) === 1) {
+    return [entries[0].panPreference * width];
+  }
   const gap = entries.length > 1 ? 1.3 / (entries.length - 1) : 0;
   const upper = 1 - gap * (entries.length - 1);
   const blocks = [];

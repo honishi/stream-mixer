@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = Object.freeze({ volume: 0.8, strength: 0.75, spread: 0.65 });
+export const DEFAULT_SETTINGS = Object.freeze({ volume: 0.8, strength: 0.75, spread: 1 });
 
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -12,6 +12,6 @@ export function sanitizeSettings(value = {}) {
 }
 
 export function panPositions(count, spread) {
-  const width = clamp(Number.isFinite(spread) ? spread : DEFAULT_SETTINGS.spread, 0, 1) * 0.85;
+  const width = clamp(Number.isFinite(spread) ? spread : DEFAULT_SETTINGS.spread, 0, 1);
   return Array.from({ length: count }, (_, index) => count < 2 ? 0 : -width + 2 * width * index / (count - 1));
 }
