@@ -11,8 +11,35 @@ document.querySelector('#play').onclick = async () => {
     context = new AudioContext();
     gain = context.createGain();
     gain.gain.value = Number(params.get('amplitude') || 0.08);
-    const source = context.createOscillator();
-    source.frequency.value = Number(params.get('frequency') || 440);
+    let source;
+    if (params.get('mode') === 'noise' || params.get('mode') === 'speech-like') {
+      const buffer = context.createBuffer(2, context.sampleRate * 3, context.sampleRate);
+      let seed = 123456;
+      const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) | 0; return (seed >>> 0) / 2147483648 - 1; };
+      const weights = Array.from({ length: 30 }, (_, i) => {
+        const frequency = (i + 1) * 130;
+        return [600, 1400, 2500].reduce((sum, formant) => sum + Math.exp(-(((frequency - formant) / 140) ** 2)), 0) / (i + 1);
+      });
+      let phase = 0;
+      const noise = [0, 0];
+      for (let i = 0; i < buffer.length; i++) {
+        const time = i / context.sampleRate;
+        phase += 2 * Math.PI * (130 + 8 * Math.sin(time * 8)) / context.sampleRate;
+        const envelope = Math.sin(Math.PI * (time % 0.4) / 0.4) ** 2;
+        const voice = params.get('mode') === 'speech-like' ? weights.reduce((sum, weight, h) => sum + weight * Math.sin(phase * (h + 1)), 0) * envelope * 2 : 0;
+        // Low-pass random noise models a fan/ventilation sound rather than
+        // full-band white noise, which is outside typical broadcast speech.
+        for (let c = 0; c < 2; c++) noise[c] = noise[c] * 0.92 + random() * 0.08;
+        buffer.getChannelData(0)[i] = voice + noise[0] * (params.get('mode') === 'speech-like' ? 0.25 : 2.5);
+        buffer.getChannelData(1)[i] = noise[1] * 2.5;
+      }
+      source = context.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+    } else {
+      source = context.createOscillator();
+      source.frequency.value = Number(params.get('frequency') || 440);
+    }
     source.connect(gain).connect(context.destination);
     source.start();
   }

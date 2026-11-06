@@ -133,6 +133,14 @@ function renderStream(stream, index) {
     card = $('stream-template').content.firstElementChild.cloneNode(true);
     card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
     card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
+    card.querySelector('.nr-button').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      if (busy) return;
+      button.textContent = '…';
+      button.setAttribute('aria-busy', 'true');
+      try { await act('TOGGLE_NR', { tabId: stream.id }); }
+      finally { button.textContent = 'NR'; button.removeAttribute('aria-busy'); }
+    });
     cards.set(stream.id, card);
     $('streams').append(card);
     const dot = document.createElement('button');
@@ -151,6 +159,11 @@ function renderStream(stream, index) {
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
   const bypassed = latestState.bypassed;
+  const nrButton = card.querySelector('.nr-button');
+  nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
+  nrButton.disabled = busy || bypassed;
+  nrButton.ariaLabel = `${stream.title} のノイズリダクションを${stream.noiseReductionEnabled ? '無効' : '有効'}にする`;
+  nrButton.title = bypassed ? '全バイパス中はノイズ抑制も停止します' : 'NR: 会話向けノイズリダクション。音楽や効果音も弱まる場合があります。';
   const soloButton = card.querySelector('.solo-button');
   const selectedSolo = latestState.selectedSoloTabId === stream.id;
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
@@ -277,6 +290,7 @@ async function act(type, payload) {
   busy = true;
   showError(null);
   $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
+  for (const control of document.querySelectorAll('.nr-button, .solo-button, .remove-button, .position-dot')) control.disabled = true;
   try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }

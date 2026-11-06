@@ -1,6 +1,6 @@
 import { test, expect, chromium } from '@playwright/test';
 import { createServer } from 'node:http';
-import { readFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 
@@ -18,13 +18,13 @@ test.beforeAll(async () => {
 
 test.afterAll(() => new Promise((done) => server.close(done)));
 
-async function launch(profile = '') {
+async function launch(profile = '', directory = extensionPath) {
   const context = await chromium.launchPersistentContext(profile, {
     channel: 'chromium', headless: true, viewport: { width: 900, height: 700 },
     // Unlike --mute-audio, fake hardware output preserves the tab's audible signal.
     // Capture, Web Audio and permission checks are real; no sound reaches speakers.
     ignoreDefaultArgs: ['--mute-audio'],
-    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`,
+    args: [`--disable-extensions-except=${directory}`, `--load-extension=${directory}`,
       '--disable-audio-output', '--enable-unsafe-extension-debugging'],
   });
   let [worker] = context.serviceWorkers();
@@ -36,10 +36,10 @@ async function launch(profile = '') {
   return { context, worker, id, browserCdp, errors };
 }
 
-async function source(app, index = 0) {
+async function source(app, index = 0, mode = 'tone') {
   const page = await app.context.newPage();
   const titles = ['深夜ラジオ / 夜の雑談', 'ゲーム実況 — 配信テスト', '作業用 BGM / Live session'];
-  await page.goto(`${baseUrl}/?title=${encodeURIComponent(titles[index % titles.length])}&frequency=${220 + index * 110}&amplitude=${index % 2 ? 0.2 : 0.035}&index=${index}`);
+  await page.goto(`${baseUrl}/?title=${encodeURIComponent(titles[index % titles.length])}&frequency=${220 + index * 110}&amplitude=${mode === 'tone' && index % 2 === 0 ? 0.035 : 0.2}&index=${index}&mode=${mode}`);
   await page.locator('#play').click();
   await expect.poll(async () => app.worker.evaluate(async (url) => {
     const [tab] = await chrome.tabs.query({ url });
@@ -390,4 +390,125 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     await expect(view.locator('#error')).toBeHidden();
     expect(app.errors).toEqual([]);
   } finally { await app.context.close(); }
+});
+
+test('per-tab NR suppresses noise, preserves a voiced signal, and survives solo and bypass', async () => {
+  const app = await launch();
+  try {
+    const sources = [];
+    let view;
+    for (let i = 0; i < 2; i++) {
+      sources.push(await source(app, i, i === 0 ? 'noise' : 'speech-like'));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      if (i === 0) await view.close();
+    }
+    await view.locator('.settings-section > summary').click();
+    await view.locator('#strength').fill('0');
+    await view.locator('#spread').fill('0');
+    await view.locator('#spread').press('Tab');
+    await expect.poll(async () => (await state(view)).settings.strength).toBe(0);
+    await view.locator('.settings-section > summary').click();
+    await expect.poll(async () => (await state(view)).streams[0].correctionDb).toBeLessThan(0.1);
+    await expect.poll(async () => (await state(view)).streams[0].rms[0]).toBeGreaterThan(-45);
+    const raw = (await state(view)).streams[0].rms[0];
+    await expect(view.locator('.nr-button[aria-pressed=true]')).toHaveCount(0);
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(view.locator('#error')).toBeHidden();
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms), { timeout: 10000 }).toBeLessThan(raw - 12);
+    expect((await state(view)).streams[1].noiseReductionEnabled).toBe(false);
+
+    await view.locator('.nr-button').nth(1).click();
+    await expect(view.locator('.nr-button').nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => {
+      const [left, right] = (await state(view)).streams[1].rms;
+      return left > -45 && left - right > 8;
+    }, { timeout: 10000 }).toBe(true);
+    await view.locator('main').evaluate((element) => { element.scrollTop = 0; });
+    await view.locator('body').screenshot({ path: 'test-results/popup-noise-reduction.png' });
+    await view.locator('.solo-button').nth(1).click();
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(-60);
+    await view.locator('.solo-button').nth(1).click();
+    await view.locator('#bypass').click();
+    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expect(view.locator('.nr-button').first()).toBeDisabled();
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(raw - 2);
+    expect((await state(view)).streams.every((stream) => stream.noiseReductionEnabled)).toBe(true);
+    await view.close();
+    view = await popup(app, sources[0], false);
+    await expect(view.locator('.nr-button[aria-pressed=true]')).toHaveCount(2);
+    await view.locator('#bypass').click();
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms), { timeout: 10000 }).toBeLessThan(raw - 12);
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(raw - 2);
+    // Recreate the channel states after disposal, rather than leaving a dead node.
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms), { timeout: 10000 }).toBeLessThan(raw - 12);
+    // Exercise the full six-tab scope with separate left/right RNNoise states.
+    for (let i = 2; i < 6; i++) {
+      await view.close();
+      sources.push(await source(app, i, 'speech-like'));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      await view.locator('.nr-button').nth(i).click();
+      await expect(view.locator('.nr-button').nth(i)).toHaveAttribute('aria-pressed', 'true');
+    }
+    await expect.poll(async () => (await state(view)).streams.slice(1).every((stream) => stream.rms[0] > -45)).toBe(true);
+    await expect(view.locator('.nr-button[aria-pressed=true]')).toHaveCount(6);
+    await view.locator('#stop-all').click();
+    await expect(view.locator('.stream-card')).toHaveCount(0);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
+test('NR asset failure leaves the original audio playing', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'stream-mixer-broken-nr-'));
+  let app;
+  try {
+    await cp(extensionPath, directory, { recursive: true });
+    await rm(join(directory, 'vendor/rnnoise/rnnoise.wasm'));
+    await rm(join(directory, 'vendor/rnnoise/rnnoise_simd.wasm'));
+    app = await launch('', directory);
+    const audio = await source(app);
+    const view = await popup(app, audio);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await view.locator('.nr-button').click();
+    await expect(view.locator('#error')).toBeVisible();
+    await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(-50);
+    expect((await state(view)).streams[0].noiseReductionEnabled).toBe(false);
+    expect(app.errors).toEqual([]);
+  } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test('NR processing failure restores the original audio without releasing capture', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'stream-mixer-failing-nr-'));
+  let app;
+  try {
+    await cp(extensionPath, directory, { recursive: true });
+    const processorPath = join(directory, 'audio/noise-processor.js');
+    const processor = await readFile(processorPath, 'utf8');
+    // Inject a DSP fault after startup while retaining the real WASM graph.
+    await writeFile(processorPath, processor.replace('if (this.frames) this.frames.process',
+      "if (this.frames && (this.testFrames = (this.testFrames ?? 0) + 1) > 750) throw new Error('Injected NR failure');\n      if (this.frames) this.frames.process"));
+    app = await launch('', directory);
+    const audio = await source(app, 0, 'speech-like');
+    const view = await popup(app, audio);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await view.locator('.nr-button').click();
+    await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
+    await expect(view.locator('#notice')).toContainText('ノイズ抑制を解除して再生を継続');
+    await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'false');
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(-50);
+    expect(app.errors).toEqual([]);
+  } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
 });

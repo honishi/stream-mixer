@@ -19,4 +19,12 @@ for (const path of [manifest.background.service_worker, manifest.action.default_
   await access(join('extension', path));
 }
 if (manifest.host_permissions || manifest.content_scripts) throw new Error('Unexpected site access');
-console.log('Extension JavaScript and manifest checks passed.');
+if (!manifest.content_security_policy.extension_pages.includes("'wasm-unsafe-eval'")) {
+  throw new Error('Packaged noise reduction requires WASM permission.');
+}
+for (const variant of ['rnnoise', 'rnnoise_simd']) {
+  if (!WebAssembly.validate(await readFile(`extension/vendor/rnnoise/${variant}.wasm`))) {
+    throw new Error(`Invalid noise reduction binary: ${variant}`);
+  }
+}
+console.log('Extension JavaScript, manifest, and packaged WASM checks passed.');

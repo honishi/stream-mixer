@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 import { preferredPanPositions, withPanPreference } from './shared/panning.js';
+import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
 
 const streams = new Map();
 const notices = [];
@@ -17,7 +18,7 @@ let selectedSoloTabId = null;
 
 async function ensureAudio() {
   if (context) return;
-  const next = new AudioContext({ latencyHint: 'interactive' });
+  const next = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
   try {
     await next.audioWorklet.addModule('audio/processors.js');
     master = new GainNode(next, { gain: settings.volume });
@@ -51,7 +52,7 @@ function getState() {
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
     streams: [...streams.values()].map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
-      targetPan: entry.targetPan, panPreference: entry.panPreference, ...entry.stats,
+      targetPan: entry.targetPan, panPreference: entry.panPreference, noiseReductionEnabled: entry.noiseReductionEnabled, ...entry.stats,
     })),
   };
 }
@@ -66,6 +67,7 @@ async function remove(id) {
   panOrder = panOrder.filter((entryId) => entryId !== id);
   entry.stream.getTracks().forEach((track) => { track.onended = null; track.stop(); });
   for (const node of [entry.source, entry.normalize, entry.pan, entry.meter, entry.fade]) node.disconnect();
+  destroyNoiseNode(entry.noise);
   for (const node of [entry.normalize, entry.meter]) {
     node.port.onmessage = null;
     node.port.postMessage({ stop: true });
@@ -85,6 +87,8 @@ async function remove(id) {
 
 function route(entry) {
   entry.source.disconnect();
+  entry.noise?.disconnect();
+  entry.noise?.port.postMessage({ type: 'suspend', value: bypassed });
   entry.pan.disconnect();
   entry.meter.disconnect();
   if (bypassed) {
@@ -93,10 +97,43 @@ function route(entry) {
     entry.source.connect(entry.fade);
     entry.meter.connect(context.destination);
   } else {
-    entry.source.connect(entry.normalize);
+    if (entry.noiseReductionEnabled && entry.noise) entry.source.connect(entry.noise).connect(entry.normalize);
+    else entry.source.connect(entry.normalize);
     entry.pan.connect(entry.fade);
     entry.meter.connect(master);
   }
+}
+
+function noiseFailure(entry, node, error) {
+  operation = operation.then(() => {
+    if (!streams.has(entry.id) || entry.noise !== node) return;
+    entry.noiseReductionEnabled = false;
+    entry.noise = undefined;
+    route(entry);
+    destroyNoiseNode(node);
+    notices.push(`${entry.title}: ノイズ抑制を解除して再生を継続します。${error.message}`);
+    if (notices.length > 3) notices.shift();
+    chrome.runtime.sendMessage({ target: 'worker', type: 'ENGINE_CHANGED' }).catch(() => {});
+  }).catch(console.error);
+}
+
+async function toggleNoiseReduction(tabId) {
+  const entry = streams.get(tabId);
+  if (!entry) throw new Error('このタブはすでに制御を解除されています。');
+  if (bypassed) throw new Error('ミックスを再開してからノイズ抑制を切り替えてください。');
+  const enabled = !entry.noiseReductionEnabled;
+  let node;
+  // Leave the original path intact until the model has initialized successfully.
+  if (enabled) node = await createNoiseNode(context, (error) => noiseFailure(entry, node, error));
+  entry.fade.gain.cancelScheduledValues(context.currentTime);
+  entry.fade.gain.setTargetAtTime(0, context.currentTime, 0.004);
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  const previous = entry.noise;
+  entry.noiseReductionEnabled = enabled;
+  entry.noise = node;
+  route(entry);
+  entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, 0.008);
+  destroyNoiseNode(previous);
 }
 
 function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
@@ -197,7 +234,7 @@ async function add(message) {
     const fade = new GainNode(context, { gain: 0 });
     nodes.push(fade);
     const entry = { ...message.tab, stream, source, normalize, pan, meter, fade,
-      color: sequence++ % 6, targetPan: 0, panPreference: null,
+      color: sequence++ % 6, targetPan: 0, panPreference: null, noiseReductionEnabled: false,
       stats: { inputDb: -120, correctionDb: 0, limitingDb: 0, rms: [-120, -120], peak: [-120, -120] },
     };
     normalize.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
@@ -237,6 +274,7 @@ async function handle(message) {
       break;
     case 'BYPASS': await setBypass(message.enabled); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
+    case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;
