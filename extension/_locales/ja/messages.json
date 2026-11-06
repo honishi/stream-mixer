@@ -1,0 +1,424 @@
+{
+  "locale": {
+    "message": "ja"
+  },
+  "extensionName": {
+    "message": "stream-mixer"
+  },
+  "extensionDescription": {
+    "message": "複数の放送の音量を穏やかにそろえ、左右に配置するタブ音声ミキサー。"
+  },
+  "addTab": {
+    "message": "このタブを追加"
+  },
+  "checkingTab": {
+    "message": "タブを確認しています…"
+  },
+  "stereoLayout": {
+    "message": "ステレオ配置"
+  },
+  "stereoField": {
+    "message": "STEREO FIELD"
+  },
+  "fieldEmpty": {
+    "message": "音の居場所を、ひとつずつ。"
+  },
+  "left": {
+    "message": "LEFT"
+  },
+  "center": {
+    "message": "CENTER"
+  },
+  "right": {
+    "message": "RIGHT"
+  },
+  "panLeft": {
+    "message": "L $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "panRight": {
+    "message": "R $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "dragHelp": {
+    "message": "数字をドラッグして配置を調整"
+  },
+  "resetPans": {
+    "message": "自動配置に戻す"
+  },
+  "resumeAudio": {
+    "message": "音声エンジンを再開"
+  },
+  "mixSettings": {
+    "message": "ミックス設定"
+  },
+  "settingsSummary": {
+    "message": "音量・Normalize・広がり"
+  },
+  "globalSettings": {
+    "message": "全体設定"
+  },
+  "volume": {
+    "message": "全体の音量"
+  },
+  "normalize": {
+    "message": "Normalize"
+  },
+  "spread": {
+    "message": "パンの広がり"
+  },
+  "controlledTabs": {
+    "message": "制御中のタブ"
+  },
+  "mixing": {
+    "message": "ミックス中"
+  },
+  "standby": {
+    "message": "待機中"
+  },
+  "bypassed": {
+    "message": "バイパス中"
+  },
+  "paused": {
+    "message": "一時停止中"
+  },
+  "soloHeading": {
+    "message": "ソロ再生中"
+  },
+  "bypassAll": {
+    "message": "全バイパス"
+  },
+  "resumeMix": {
+    "message": "ミックスを再開"
+  },
+  "stopAll": {
+    "message": "すべて解除"
+  },
+  "emptyTitle": {
+    "message": "放送をミックスに追加"
+  },
+  "emptyHelp": {
+    "message": "音声が出ているタブで拡張を開くと、音量と左右の配置をまとめて整えられます。"
+  },
+  "otherTabs": {
+    "message": "音声が出ているほかのタブ"
+  },
+  "candidateHelp": {
+    "message": "対象タブに移動した後、そのタブで拡張を開いて追加してください。"
+  },
+  "localAudio": {
+    "message": "音声は端末内で処理"
+  },
+  "nr": {
+    "message": "NR"
+  },
+  "solo": {
+    "message": "Solo"
+  },
+  "remove": {
+    "message": "制御を解除"
+  },
+  "output": {
+    "message": "OUTPUT"
+  },
+  "normalizeMeter": {
+    "message": "NORMALIZE"
+  },
+  "pan": {
+    "message": "PAN"
+  },
+  "bypassMeter": {
+    "message": "BYPASS"
+  },
+  "connectionError": {
+    "message": "拡張に接続できませんでした。開き直してください。"
+  },
+  "dragSoloHelp": {
+    "message": "この音声をソロ再生中 · 離すと全体を再配置"
+  },
+  "preferredPan": {
+    "message": "希望位置 $pan$。離すと全体を再配置",
+    "placeholders": {
+      "pan": {
+        "content": "$1"
+      }
+    }
+  },
+  "removeTab": {
+    "message": "$title$ の制御を解除",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrEnable": {
+    "message": "$title$ のノイズリダクションを有効にする",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrDisable": {
+    "message": "$title$ のノイズリダクションを無効にする",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrBypassed": {
+    "message": "全バイパス中はノイズ抑制も停止します"
+  },
+  "nrHint": {
+    "message": "NR: 会話向けノイズリダクション。音楽や効果音も弱まる場合があります。"
+  },
+  "soloEnable": {
+    "message": "$title$ をソロ再生",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "soloDisable": {
+    "message": "$title$ のソロを解除",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "soloEnableHint": {
+    "message": "このタブだけを再生"
+  },
+  "soloDisableHint": {
+    "message": "ソロを解除して全体再生に戻す"
+  },
+  "tabMuted": {
+    "message": "タブがミュートされています"
+  },
+  "otherSolo": {
+    "message": "他のタブをソロ再生中"
+  },
+  "dragSoloState": {
+    "message": "● ドラッグ中のソロ再生"
+  },
+  "soloState": {
+    "message": "● ソロ再生中"
+  },
+  "bypassState": {
+    "message": "バイパス中 · 元の音声"
+  },
+  "playingState": {
+    "message": "● 音声を調整中"
+  },
+  "silentState": {
+    "message": "○ 無音・一時停止"
+  },
+  "silent": {
+    "message": "無音"
+  },
+  "outputLevel": {
+    "message": "補正後の音量 $level$",
+    "placeholders": {
+      "level": {
+        "content": "$1"
+      }
+    }
+  },
+  "limiting": {
+    "message": "ピーク抑制 $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "panHint": {
+    "message": "$title$ · $pan$ · ドラッグまたは左右キーで配置を調整",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      },
+      "pan": {
+        "content": "$2"
+      }
+    }
+  },
+  "panLabel": {
+    "message": "$number$: $title$ の配置",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "title": {
+        "content": "$2"
+      }
+    }
+  },
+  "streamCountOne": {
+    "message": "$count$ STREAM",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "streamCountOther": {
+    "message": "$count$ STREAMS",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "bypassHelp": {
+    "message": "配置を保持中 · 元の音声を再生"
+  },
+  "spreadHelp": {
+    "message": "広がりを上げると配置を調整できます"
+  },
+  "processing": {
+    "message": "処理中…"
+  },
+  "added": {
+    "message": "追加済み"
+  },
+  "addHelp": {
+    "message": "音声が出ている Web ページで拡張を開いてください。"
+  },
+  "addedHelp": {
+    "message": "このタブは追加済みです。popup を閉じても音声の調整は続きます。"
+  },
+  "unmuteHelp": {
+    "message": "タブのミュートを解除してから追加してください。"
+  },
+  "candidate": {
+    "message": "↗ $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "candidateMuted": {
+    "message": "↗ $title$（ミュート）",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "engineConnectionError": {
+    "message": "音声エンジンに接続できませんでした。"
+  },
+  "webPageRequired": {
+    "message": "通常の Web ページで拡張を開いてください。"
+  },
+  "playFirst": {
+    "message": "このタブで音声を再生してから追加してください。"
+  },
+  "captureError": {
+    "message": "追加できませんでした。対象タブで拡張アイコンを開き直してお試しください。詳細: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "addFirst": {
+    "message": "先にタブを追加してください。"
+  },
+  "unknownOperation": {
+    "message": "不明な操作です。"
+  },
+  "engineStopped": {
+    "message": "音声エンジンが停止しています。"
+  },
+  "outputStopped": {
+    "message": "出力処理が停止したため制御を解除しました。"
+  },
+  "nrRecovered": {
+    "message": "$title$: ノイズ抑制を解除して再生を継続します。$error$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "tabReleased": {
+    "message": "このタブはすでに制御を解除されています。"
+  },
+  "resumeBeforeNr": {
+    "message": "ミックスを再開してからノイズ抑制を切り替えてください。"
+  },
+  "resumeBeforeSolo": {
+    "message": "ミックスを再開してからソロを選択してください。"
+  },
+  "cannotSolo": {
+    "message": "このタブをソロ再生できません。"
+  },
+  "invalidSolo": {
+    "message": "ソロ操作が正しくありません。"
+  },
+  "invalidBypass": {
+    "message": "バイパス設定が正しくありません。"
+  },
+  "resumeBeforePan": {
+    "message": "ミックスを再開してから配置を調整してください。"
+  },
+  "audioStopped": {
+    "message": "音声処理が停止したため制御を解除しました。"
+  },
+  "captureEnded": {
+    "message": "音声の取得が終了しました。再追加してください。"
+  },
+  "unknownAudioOperation": {
+    "message": "不明な音声操作です。"
+  },
+  "invalidPan": {
+    "message": "パン位置が正しくありません。"
+  },
+  "increaseSpread": {
+    "message": "パンの広がりを上げてから配置を調整してください。"
+  },
+  "nrLoadError": {
+    "message": "ノイズ抑制データを読み込めませんでした。"
+  },
+  "nrSampleRate": {
+    "message": "48 kHz の音声エンジンが必要です。拡張を再読み込みしてください。"
+  },
+  "nrTimeout": {
+    "message": "ノイズ抑制の準備がタイムアウトしました。"
+  },
+  "nrStopped": {
+    "message": "ノイズ抑制の音声処理が停止しました。"
+  },
+  "nrError": {
+    "message": "ノイズ抑制でエラーが発生しました。詳細: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "translationLoadError": {
+    "message": "翻訳データを読み込めませんでした。拡張を再読み込みしてください。"
+  },
+  "offscreenPurpose": {
+    "message": "popup を閉じても、選択したタブの音量補正・パン・ノイズ抑制を継続します。"
+  }
+}

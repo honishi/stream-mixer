@@ -1,0 +1,424 @@
+{
+  "locale": {
+    "message": "en"
+  },
+  "extensionName": {
+    "message": "stream-mixer"
+  },
+  "extensionDescription": {
+    "message": "Balance and pan audio from multiple tabs, with optional noise reduction and solo controls."
+  },
+  "addTab": {
+    "message": "Add this tab"
+  },
+  "checkingTab": {
+    "message": "Checking this tab…"
+  },
+  "stereoLayout": {
+    "message": "Stereo placement"
+  },
+  "stereoField": {
+    "message": "STEREO FIELD"
+  },
+  "fieldEmpty": {
+    "message": "Give each stream its own space."
+  },
+  "left": {
+    "message": "LEFT"
+  },
+  "center": {
+    "message": "CENTER"
+  },
+  "right": {
+    "message": "RIGHT"
+  },
+  "panLeft": {
+    "message": "L $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "panRight": {
+    "message": "R $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "dragHelp": {
+    "message": "Drag a number to adjust its position"
+  },
+  "resetPans": {
+    "message": "Reset positions"
+  },
+  "resumeAudio": {
+    "message": "Resume audio"
+  },
+  "mixSettings": {
+    "message": "Mix settings"
+  },
+  "settingsSummary": {
+    "message": "Volume · Normalize · Width"
+  },
+  "globalSettings": {
+    "message": "Global settings"
+  },
+  "volume": {
+    "message": "Volume"
+  },
+  "normalize": {
+    "message": "Normalize"
+  },
+  "spread": {
+    "message": "Stereo width"
+  },
+  "controlledTabs": {
+    "message": "Controlled tabs"
+  },
+  "mixing": {
+    "message": "Mixing"
+  },
+  "standby": {
+    "message": "Standby"
+  },
+  "bypassed": {
+    "message": "Bypassed"
+  },
+  "paused": {
+    "message": "Paused"
+  },
+  "soloHeading": {
+    "message": "Solo playback"
+  },
+  "bypassAll": {
+    "message": "Bypass all"
+  },
+  "resumeMix": {
+    "message": "Resume mix"
+  },
+  "stopAll": {
+    "message": "Release all"
+  },
+  "emptyTitle": {
+    "message": "Add a stream to your mix"
+  },
+  "emptyHelp": {
+    "message": "Open the extension on a playing tab to balance its volume and stereo position."
+  },
+  "otherTabs": {
+    "message": "Other playing tabs"
+  },
+  "candidateHelp": {
+    "message": "Switch to a tab, then open this extension there to add it."
+  },
+  "localAudio": {
+    "message": "Audio stays on your device"
+  },
+  "nr": {
+    "message": "NR"
+  },
+  "solo": {
+    "message": "Solo"
+  },
+  "remove": {
+    "message": "Release tab"
+  },
+  "output": {
+    "message": "OUTPUT"
+  },
+  "normalizeMeter": {
+    "message": "NORMALIZE"
+  },
+  "pan": {
+    "message": "PAN"
+  },
+  "bypassMeter": {
+    "message": "BYPASS"
+  },
+  "connectionError": {
+    "message": "Could not connect to the extension. Close and reopen the popup."
+  },
+  "dragSoloHelp": {
+    "message": "Solo preview · Release to rebalance"
+  },
+  "preferredPan": {
+    "message": "Preferred position: $pan$. Release to rebalance.",
+    "placeholders": {
+      "pan": {
+        "content": "$1"
+      }
+    }
+  },
+  "removeTab": {
+    "message": "Release $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrEnable": {
+    "message": "Enable noise reduction for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrDisable": {
+    "message": "Disable noise reduction for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "nrBypassed": {
+    "message": "Noise reduction is paused while bypassed."
+  },
+  "nrHint": {
+    "message": "NR: Noise reduction for speech. Music and sound effects may also be reduced."
+  },
+  "soloEnable": {
+    "message": "Solo $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "soloDisable": {
+    "message": "Stop soloing $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "soloEnableHint": {
+    "message": "Play only this tab"
+  },
+  "soloDisableHint": {
+    "message": "Stop soloing and play all tabs"
+  },
+  "tabMuted": {
+    "message": "Tab is muted"
+  },
+  "otherSolo": {
+    "message": "Another tab is soloed"
+  },
+  "dragSoloState": {
+    "message": "● Solo preview"
+  },
+  "soloState": {
+    "message": "● Solo playback"
+  },
+  "bypassState": {
+    "message": "Bypassed · Original audio"
+  },
+  "playingState": {
+    "message": "● Processing audio"
+  },
+  "silentState": {
+    "message": "○ Silent or paused"
+  },
+  "silent": {
+    "message": "Silent"
+  },
+  "outputLevel": {
+    "message": "Processed output level: $level$",
+    "placeholders": {
+      "level": {
+        "content": "$1"
+      }
+    }
+  },
+  "limiting": {
+    "message": "Peak limiting $value$",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "panHint": {
+    "message": "$title$ · $pan$ · Drag or use the arrow keys to adjust",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      },
+      "pan": {
+        "content": "$2"
+      }
+    }
+  },
+  "panLabel": {
+    "message": "$number$: Position of $title$",
+    "placeholders": {
+      "number": {
+        "content": "$1"
+      },
+      "title": {
+        "content": "$2"
+      }
+    }
+  },
+  "streamCountOne": {
+    "message": "$count$ STREAM",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "streamCountOther": {
+    "message": "$count$ STREAMS",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "bypassHelp": {
+    "message": "Positions saved · Original audio"
+  },
+  "spreadHelp": {
+    "message": "Increase width to adjust positions"
+  },
+  "processing": {
+    "message": "Working…"
+  },
+  "added": {
+    "message": "Added"
+  },
+  "addHelp": {
+    "message": "Open the extension on a web page that is playing audio."
+  },
+  "addedHelp": {
+    "message": "This tab is already added. Audio processing continues when the popup closes."
+  },
+  "unmuteHelp": {
+    "message": "Unmute this tab before adding it."
+  },
+  "candidate": {
+    "message": "↗ $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "candidateMuted": {
+    "message": "↗ $title$ (muted)",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "engineConnectionError": {
+    "message": "Could not connect to the audio engine."
+  },
+  "webPageRequired": {
+    "message": "Open the extension on a regular web page."
+  },
+  "playFirst": {
+    "message": "Play audio in this tab before adding it."
+  },
+  "captureError": {
+    "message": "Could not add the tab. Reopen the extension on that tab and try again. Details: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "addFirst": {
+    "message": "Add a tab first."
+  },
+  "unknownOperation": {
+    "message": "Unknown operation."
+  },
+  "engineStopped": {
+    "message": "The audio engine has stopped."
+  },
+  "outputStopped": {
+    "message": "The output processor stopped. The tab has been released."
+  },
+  "nrRecovered": {
+    "message": "$title$: Noise reduction was disabled so playback can continue. $error$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "tabReleased": {
+    "message": "This tab has already been released."
+  },
+  "resumeBeforeNr": {
+    "message": "Resume the mix before changing noise reduction."
+  },
+  "resumeBeforeSolo": {
+    "message": "Resume the mix before selecting a solo tab."
+  },
+  "cannotSolo": {
+    "message": "This tab cannot be soloed."
+  },
+  "invalidSolo": {
+    "message": "Invalid solo operation."
+  },
+  "invalidBypass": {
+    "message": "Invalid bypass setting."
+  },
+  "resumeBeforePan": {
+    "message": "Resume the mix before adjusting positions."
+  },
+  "audioStopped": {
+    "message": "Audio processing stopped. The tab has been released."
+  },
+  "captureEnded": {
+    "message": "Audio capture ended. Add the tab again."
+  },
+  "unknownAudioOperation": {
+    "message": "Unknown audio operation."
+  },
+  "invalidPan": {
+    "message": "Invalid pan position."
+  },
+  "increaseSpread": {
+    "message": "Increase stereo width before adjusting positions."
+  },
+  "nrLoadError": {
+    "message": "Could not load the noise reduction data."
+  },
+  "nrSampleRate": {
+    "message": "A 48 kHz audio engine is required. Reload the extension."
+  },
+  "nrTimeout": {
+    "message": "Noise reduction initialization timed out."
+  },
+  "nrStopped": {
+    "message": "The noise reduction processor stopped."
+  },
+  "nrError": {
+    "message": "Noise reduction failed. Details: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "translationLoadError": {
+    "message": "Could not load translations. Reload the extension."
+  },
+  "offscreenPurpose": {
+    "message": "Keep processing audio from selected tabs when the popup closes."
+  }
+}

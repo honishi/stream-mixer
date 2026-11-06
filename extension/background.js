@@ -1,3 +1,4 @@
+import { t, getMessageBundle } from './shared/i18n.js';
 import { sanitizeSettings } from './shared/settings.js';
 
 const OFFSCREEN_URL = chrome.runtime.getURL('offscreen.html');
@@ -19,13 +20,13 @@ async function ensureEngine() {
   if (creating) return creating;
   if (await hasEngine()) return;
   creating = chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA'],
-    justification: 'Keep user-selected tab audio normalization and panning running when the popup closes.' });
+    justification: t('offscreenPurpose') });
   try { await creating; } finally { creating = undefined; }
 }
 
 async function engine(type, payload = {}) {
   const result = await chrome.runtime.sendMessage({ target: 'engine', type, ...payload });
-  if (!result?.ok) throw new Error(result?.error ?? '音声エンジンに接続できませんでした。');
+  if (!result?.ok) throw new Error(result?.error ?? t('engineConnectionError'));
   return result.data;
 }
 
@@ -65,21 +66,22 @@ async function releaseEmptyEngine() {
 
 async function startTab(tabId) {
   const tab = await chrome.tabs.get(tabId);
-  if (!/^https?:\/\//.test(tab.url ?? '')) throw new Error('通常の Web ページで拡張を開いてください。');
-  if (tab.mutedInfo?.muted) throw new Error('タブのミュートを解除してから追加してください。');
-  if (!tab.audible) throw new Error('このタブで音声を再生してから追加してください。');
+  if (!/^https?:\/\//.test(tab.url ?? '')) throw new Error(t('webPageRequired'));
+  if (tab.mutedInfo?.muted) throw new Error(t('unmuteHelp'));
+  if (!tab.audible) throw new Error(t('playFirst'));
   await ensureEngine();
   try {
     const existing = await engine('STATE');
     if (existing.streams.some((stream) => stream.id === tabId)) return;
     const settings = await getSettings();
     const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
-    await engine('START', { streamId, tab: { id: tabId, title: tab.title }, settings });
+    await engine('START', { streamId, tab: { id: tabId, title: tab.title }, settings,
+      messages: await getMessageBundle() });
     await chrome.storage.session.remove('notices');
     await updateBadge(existing.streams.length + 1);
   } catch (error) {
     await releaseEmptyEngine();
-    throw new Error(`追加できませんでした。対象タブで拡張アイコンを開き直してお試しください。詳細: ${error.message}`);
+    throw new Error(t('captureError', [error.message]));
   }
 }
 
@@ -109,7 +111,7 @@ async function handle(message) {
     case 'TOGGLE_SOLO':
     case 'TOGGLE_NR':
     case 'BYPASS': return serialize(async () => {
-      if (!(await hasEngine())) throw new Error('先にタブを追加してください。');
+      if (!(await hasEngine())) throw new Error(t('addFirst'));
       return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled });
     });
     case 'ENGINE_CHANGED': return serialize(async () => {
@@ -119,7 +121,7 @@ async function handle(message) {
       }
       await releaseEmptyEngine();
     });
-    default: throw new Error('不明な操作です。');
+    default: throw new Error(t('unknownOperation'));
   }
 }
 
@@ -144,7 +146,7 @@ chrome.runtime.onConnect.addListener((port) => {
     else if (message.type !== 'KEEP_ALIVE') return;
     serialize(async () => {
       if (disconnected || tabId === undefined) return;
-      if (!(await hasEngine())) throw new Error('音声エンジンが停止しています。');
+      if (!(await hasEngine())) throw new Error(t('engineStopped'));
       await engine('DRAG_SOLO', { tabId, owner });
     }).catch((error) => {
       if (!disconnected) port.postMessage({ error: error.message });

@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n.js';
 const binaries = new Map();
 const modules = new WeakMap();
 
@@ -6,7 +7,7 @@ async function getBinary() {
   const path = simd ? 'rnnoise_simd.wasm' : 'rnnoise.wasm';
   if (!binaries.has(path)) {
     binaries.set(path, fetch(new URL(`../vendor/rnnoise/${path}`, import.meta.url)).then((response) => {
-      if (!response.ok) throw new Error('ノイズ抑制データを読み込めませんでした。');
+      if (!response.ok) throw new Error(t('nrLoadError'));
       return response.arrayBuffer();
     }).catch((error) => { binaries.delete(path); throw error; }));
   }
@@ -26,7 +27,7 @@ export function destroyNoiseNode(node) {
 }
 
 export async function createNoiseNode(context, onFailure) {
-  if (context.sampleRate !== 48000) throw new Error('48 kHz の音声エンジンが必要です。拡張を再読み込みしてください。');
+  if (context.sampleRate !== 48000) throw new Error(t('nrSampleRate'));
   if (!modules.has(context)) {
     modules.set(context, context.audioWorklet.addModule(new URL('./noise-processor.js', import.meta.url)).catch((error) => {
       modules.delete(context);
@@ -40,16 +41,16 @@ export async function createNoiseNode(context, onFailure) {
   try {
     await new Promise((resolve, reject) => {
       let ready = false;
-      const timeout = setTimeout(() => reject(new Error('ノイズ抑制の準備がタイムアウトしました。')), 5000);
+      const timeout = setTimeout(() => reject(new Error(t('nrTimeout'))), 5000);
       const fail = (error) => {
         clearTimeout(timeout);
         if (ready) onFailure(error);
         else reject(error);
       };
-      node.onprocessorerror = () => fail(new Error('ノイズ抑制の音声処理が停止しました。'));
+      node.onprocessorerror = () => fail(new Error(t('nrStopped')));
       node.port.onmessage = ({ data }) => {
         if (data.type === 'ready') { ready = true; clearTimeout(timeout); resolve(); }
-        if (data.type === 'error') fail(new Error(data.error));
+        if (data.type === 'error') fail(new Error(t('nrError', [data.error])));
       };
     });
     return node;

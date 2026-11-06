@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { clamp, panPositions } from './settings.js';
 
 // Work in normalized field coordinates so preferences scale with the spread.
@@ -40,11 +41,11 @@ export function preferredPanPositions(entries, spread) {
 }
 
 export function withPanPreference(entries, id, requestedPan, spread) {
-  if (!Number.isFinite(requestedPan)) throw new Error('パン位置が正しくありません。');
+  if (!Number.isFinite(requestedPan)) throw new Error(t('invalidPan'));
   const selected = entries.find((entry) => entry.id === id);
-  if (!selected) throw new Error('このタブはすでに制御を解除されています。');
+  if (!selected) throw new Error(t('tabReleased'));
   const width = panPositions(2, spread)[1];
-  if (!width) throw new Error('パンの広がりを上げてから配置を調整してください。');
+  if (!width) throw new Error(t('increaseSpread'));
   const pan = clamp(requestedPan, -width, width);
   const reordered = entries.filter((entry) => entry.id !== id);
   // Pick the nearest spatial slot, then solve the actual positions softly.

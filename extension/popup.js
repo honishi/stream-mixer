@@ -1,3 +1,4 @@
+import { t, localizeDocument } from './shared/i18n.js';
 import { clamp, panPositions } from './shared/settings.js';
 
 const $ = (id) => document.getElementById(id);
@@ -17,7 +18,7 @@ let dragging;
 
 async function request(type, payload = {}) {
   const response = await chrome.runtime.sendMessage({ target: 'worker', type, ...payload });
-  if (!response?.ok) throw new Error(response?.error ?? '拡張に接続できませんでした。開き直してください。');
+  if (!response?.ok) throw new Error(response?.error ?? t('connectionError'));
   return response.data;
 }
 
@@ -27,7 +28,7 @@ function showError(error) {
 }
 
 const meterPercent = (db) => Math.max(0, Math.min(100, (db + 60) / 60 * 100));
-function panText(pan) { return Math.abs(pan) < 0.015 ? 'CENTER' : `${pan < 0 ? 'L' : 'R'} ${Math.round(Math.abs(pan) * 100)}`; }
+function panText(pan) { return Math.abs(pan) < 0.015 ? t('center') : t(pan < 0 ? 'panLeft' : 'panRight', [Math.round(Math.abs(pan) * 100)]); }
 
 function panWidth() { return panPositions(2, latestState?.settings.spread ?? 0)[1]; }
 
@@ -92,7 +93,7 @@ function attachPanControl(dot, id) {
       offset: event.clientX - (rect.left + rect.width / 2), pan: stream.targetPan, moved: false, port, heartbeat };
     dot.setPointerCapture(event.pointerId);
     dot.classList.add('dragging');
-    $('field-help').textContent = 'この音声をソロ再生中 · 離すと全体を再配置';
+    $('field-help').textContent = t('dragSoloHelp');
   });
   const move = (event) => {
     if (dragging?.id !== id || dragging.pointerId !== event.pointerId) return;
@@ -101,7 +102,7 @@ function attachPanControl(dot, id) {
     const field = document.querySelector('.stereo-field').getBoundingClientRect();
     dragging.pan = clamp(((event.clientX - dragging.offset - field.left) / field.width - 0.5) / 0.44, -panWidth(), panWidth());
     dot.style.left = `${50 + dragging.pan * 44}%`;
-    dot.setAttribute('aria-valuetext', `希望位置 ${panText(dragging.pan)}。離すと全体を再配置`);
+    dot.setAttribute('aria-valuetext', t('preferredPan', [panText(dragging.pan)]));
   };
   dot.addEventListener('pointermove', move);
   dot.addEventListener('pointerup', (event) => {
@@ -139,7 +140,7 @@ function renderStream(stream, index) {
       button.textContent = '…';
       button.setAttribute('aria-busy', 'true');
       try { await act('TOGGLE_NR', { tabId: stream.id }); }
-      finally { button.textContent = 'NR'; button.removeAttribute('aria-busy'); }
+      finally { button.textContent = t('nr'); button.removeAttribute('aria-busy'); }
     });
     cards.set(stream.id, card);
     $('streams').append(card);
@@ -155,30 +156,35 @@ function renderStream(stream, index) {
   const heading = card.querySelector('h3');
   heading.textContent = stream.title;
   heading.title = stream.title;
-  card.querySelector('.remove-button').ariaLabel = `${stream.title} の制御を解除`;
+  card.querySelector('.remove-button').ariaLabel = t('removeTab', [stream.title]);
   card.querySelector('.remove-button').disabled = busy;
   const state = card.querySelector('.stream-state');
   const bypassed = latestState.bypassed;
   const nrButton = card.querySelector('.nr-button');
   nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
   nrButton.disabled = busy || bypassed;
-  nrButton.ariaLabel = `${stream.title} のノイズリダクションを${stream.noiseReductionEnabled ? '無効' : '有効'}にする`;
-  nrButton.title = bypassed ? '全バイパス中はノイズ抑制も停止します' : 'NR: 会話向けノイズリダクション。音楽や効果音も弱まる場合があります。';
+  nrButton.ariaLabel = t(stream.noiseReductionEnabled ? 'nrDisable' : 'nrEnable', [stream.title]);
+  nrButton.title = bypassed ? t('nrBypassed') : t('nrHint');
   const soloButton = card.querySelector('.solo-button');
   const selectedSolo = latestState.selectedSoloTabId === stream.id;
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
   soloButton.disabled = busy || bypassed;
-  soloButton.ariaLabel = selectedSolo ? `${stream.title} のソロを解除` : `${stream.title} をソロ再生`;
-  soloButton.title = selectedSolo ? 'ソロを解除して全体再生に戻す' : 'このタブだけを再生';
+  soloButton.ariaLabel = selectedSolo ? t('soloDisable', [stream.title]) : t('soloEnable', [stream.title]);
+  soloButton.title = selectedSolo ? t('soloDisableHint') : t('soloEnableHint');
   const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
   const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
-  state.textContent = stream.muted ? 'タブがミュートされています' : soloMuted ? '他のタブをソロ再生中' : latestState.soloTabId === stream.id
-    ? latestState.dragSoloTabId === stream.id ? '● ドラッグ中のソロ再生' : '● ソロ再生中'
-    : bypassed ? 'バイパス中 · 元の音声' : playing ? '● 音声を調整中' : '○ 無音・一時停止';
+  let stateKey = 'silentState';
+  if (stream.muted) stateKey = 'tabMuted';
+  else if (soloMuted) stateKey = 'otherSolo';
+  else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
+  else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
+  else if (bypassed) stateKey = 'bypassState';
+  else if (playing) stateKey = 'playingState';
+  state.textContent = t(stateKey);
   state.classList.toggle('playing', playing && !stream.muted);
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;
-  card.querySelector('.meter-group').ariaLabel = `補正後の音量 ${rms <= -60 ? '無音' : `${rms.toFixed(0)} dBFS`}`;
+  card.querySelector('.meter-group').ariaLabel = t('outputLevel', [rms <= -60 ? t('silent') : `${rms.toFixed(0)} dBFS`]);
   for (const [c, side] of ['left', 'right'].entries()) {
     card.querySelector(`.meter-fill.${side}`).style.width = `${meterPercent(stream.rms[c])}%`;
     const peak = card.querySelector(`.peak-tick.${side}`);
@@ -187,9 +193,9 @@ function renderStream(stream, index) {
   }
   const correction = Math.abs(stream.correctionDb) < 0.05 ? 0 : stream.correctionDb;
   card.querySelector('.correction').textContent = bypassed ? '—' : `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
-  card.querySelector('.limiter-label').textContent = !bypassed && stream.limitingDb < -0.5 ? `ピーク抑制 ${stream.limitingDb.toFixed(1)}` : '';
+  card.querySelector('.limiter-label').textContent = !bypassed && stream.limitingDb < -0.5 ? t('limiting', [stream.limitingDb.toFixed(1)]) : '';
   card.querySelector('.pan-track i').style.left = `${((bypassed ? 0 : stream.pan) + 1) * 50}%`;
-  card.querySelector('.pan-value').textContent = bypassed ? 'BYPASS' : panText(stream.pan);
+  card.querySelector('.pan-value').textContent = bypassed ? t('bypassMeter') : panText(stream.pan);
   const dot = dots.get(stream.id);
   const visualPan = pendingPans.get(stream.id) ?? stream.targetPan;
   const activity = !stream.muted && !soloMuted && latestState.audioState === 'running' ? clamp((rms + 50) / 35, 0, 1) : 0;
@@ -197,9 +203,9 @@ function renderStream(stream, index) {
   dot.classList.toggle('sound-active', activity > 0);
   dot.classList.toggle('solo-muted', soloMuted);
   dot.textContent = index + 1;
-  dot.title = `${stream.title} · ${panText(visualPan)} · ドラッグまたは左右キーで配置を調整`;
+  dot.title = t('panHint', [stream.title, panText(visualPan)]);
   dot.disabled = busy || bypassed || !panWidth();
-  dot.ariaLabel = `${index + 1}: ${stream.title} の配置`;
+  dot.ariaLabel = t('panLabel', [index + 1, stream.title]);
   dot.setAttribute('aria-valuemin', String(-Math.round(panWidth() * 100)));
   dot.setAttribute('aria-valuemax', String(Math.round(panWidth() * 100)));
   dot.setAttribute('aria-valuenow', String(Math.round(visualPan * 100)));
@@ -222,20 +228,24 @@ function render(state) {
   }
   state.streams.forEach(renderStream);
   $('empty').hidden = $('field-empty').hidden = state.streams.length > 0;
-  $('count').textContent = `${state.streams.length} STREAM${state.streams.length === 1 ? '' : 'S'}`;
+  $('count').textContent = t(state.streams.length === 1 ? 'streamCountOne' : 'streamCountOther', [state.streams.length]);
   document.querySelector('.stage-section').classList.toggle('bypassed', state.bypassed);
-  $('bypass').textContent = state.bypassed ? 'ミックスを再開' : '全バイパス';
+  $('bypass').textContent = state.bypassed ? t('resumeMix') : t('bypassAll');
   $('bypass').setAttribute('aria-pressed', String(state.bypassed));
   $('bypass').disabled = busy || !state.streams.length;
-  let heading = 'ミックス中';
-  if (!state.streams.length) heading = '待機中';
-  else if (state.bypassed) heading = 'バイパス中';
-  else if (state.audioState !== 'running') heading = '一時停止中';
-  else if (state.soloTabId != null) heading = 'ソロ再生中';
+  let heading = t('mixing');
+  if (!state.streams.length) heading = t('standby');
+  else if (state.bypassed) heading = t('bypassed');
+  else if (state.audioState !== 'running') heading = t('paused');
+  else if (state.soloTabId != null) heading = t('soloHeading');
   $('mix-heading').textContent = heading;
   $('field-toolbar').hidden = !state.streams.length;
-  if (!dragging) $('field-help').textContent = state.bypassed ? '配置を保持中 · 元の音声を再生' : !panWidth()
-    ? '広がりを上げると配置を調整できます' : '数字をドラッグして配置を調整';
+  if (!dragging) {
+    let helpKey = 'dragHelp';
+    if (state.bypassed) helpKey = 'bypassHelp';
+    else if (!panWidth()) helpKey = 'spreadHelp';
+    $('field-help').textContent = t(helpKey);
+  }
   $('reset-pans').hidden = !state.streams.some((stream) => Number.isFinite(stream.panPreference));
   $('reset-pans').disabled = busy || state.bypassed;
   $('stop-all').disabled = busy || !state.streams.length;
@@ -250,14 +260,14 @@ function render(state) {
   const isControlled = controlled.has(activeTab?.id);
   const canAdd = activeTab && /^https?:\/\//.test(activeTab.url ?? '') && activeTab.audible && !activeTab.mutedInfo?.muted;
   $('add').disabled = busy || isControlled || !canAdd;
-  let addLabel = 'このタブを追加';
-  if (busy) addLabel = '処理中…';
-  else if (isControlled) addLabel = '追加済み';
+  let addLabel = t('addTab');
+  if (busy) addLabel = t('processing');
+  else if (isControlled) addLabel = t('added');
   $('add-label').textContent = addLabel;
   $('add-icon').textContent = isControlled ? '✓' : '＋';
-  let addHelp = '音声が出ている Web ページで拡張を開いてください。';
-  if (isControlled) addHelp = 'このタブは追加済みです。popup を閉じても音声の調整は続きます。';
-  else if (activeTab?.mutedInfo?.muted) addHelp = 'タブのミュートを解除してから追加してください。';
+  let addHelp = t('addHelp');
+  if (isControlled) addHelp = t('addedHelp');
+  else if (activeTab?.mutedInfo?.muted) addHelp = t('unmuteHelp');
   else if (canAdd) addHelp = activeTab.title;
   $('add-help').textContent = addHelp;
   $('add').title = addHelp;
@@ -271,7 +281,7 @@ function render(state) {
     $('candidates').replaceChildren(...candidates.map((tab) => {
       const button = document.createElement('button');
       button.className = 'candidate-button';
-      button.textContent = `↗ ${tab.title}${tab.muted ? '（ミュート）' : ''}`;
+      button.textContent = t(tab.muted ? 'candidateMuted' : 'candidate', [tab.title]);
       button.title = tab.title;
       button.addEventListener('click', async () => {
         try {
@@ -319,6 +329,8 @@ function saveSettings() {
   });
 }
 
+localizeDocument();
+
 for (const key of ['volume', 'strength', 'spread']) {
   updateSlider(key);
   $(key).addEventListener('input', () => {
@@ -331,7 +343,7 @@ for (const key of ['volume', 'strength', 'spread']) {
 }
 $('add').addEventListener('click', () => act('START', { tabId: activeTab?.id }));
 $('stop-all').addEventListener('click', () => act('STOP_ALL'));
-$('bypass').addEventListener('click', () => act('BYPASS', { enabled: !latestState?.bypassed }));
+$('bypass').addEventListener('click', () => act(t('bypassMeter'), { enabled: !latestState?.bypassed }));
 $('reset-pans').addEventListener('click', () => act('RESET_PANS'));
 $('resume').addEventListener('click', () => act('RESUME'));
 window.addEventListener('pagehide', saveSettings);

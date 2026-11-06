@@ -61,8 +61,12 @@ async function popup(app, activeSource, grant = true) {
   const page = await app.context.newPage();
   if (activeSource) await activeSource.bringToFront();
   await page.goto(`chrome-extension://${app.id}/popup.html`);
-  await expect(page.locator('#add-help')).not.toHaveText('タブを確認しています…');
+  await expect(page.locator('#count')).toHaveText(/^\d+ STREAMS?$/);
   return page;
+}
+
+async function localized(page, key, substitutions = []) {
+  return page.evaluate(({ key, substitutions }) => chrome.i18n.getMessage(key, substitutions), { key, substitutions });
 }
 
 async function state(popupPage) {
@@ -120,7 +124,7 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
     expect(current.streams.map((stream) => stream.id)).toEqual(ids);
     expect(current.streams.map((stream) => stream.targetPan)).toEqual(positions);
     current.streams.forEach((stream, index) => expect(stream.correctionDb).toBeLessThanOrEqual(gains[index] + 0.01));
-    await expect(view.locator('.stream-state').first()).toHaveText('○ 無音・一時停止');
+    await expect(view.locator('.stream-state').first()).toHaveText(await localized(view, 'silentState'));
     await sources[0].locator('#play').click();
     await expect.poll(async () => (await state(view)).streams[0].inputDb).toBeGreaterThan(-50);
 
@@ -148,7 +152,7 @@ test('unapproved capture is rejected, while settings survive a browser restart',
     const audio = await source(app);
     const view = await popup(app, audio, false);
     await view.locator('#add').click();
-    await expect(view.locator('#error')).toContainText('追加できませんでした');
+    await expect(view.locator('#error')).toContainText(await localized(view, 'captureError', ['']));
     await expect(view.locator('.stream-card')).toHaveCount(0);
     await view.locator('.settings-section > summary').click();
     await view.locator('#volume').fill('47');
@@ -262,8 +266,8 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await view.locator('body').screenshot({ path: 'test-results/popup-dragged.png' });
 
     await view.locator('#bypass').click();
-    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
-    await expect(view.locator('#mix-heading')).toHaveText('バイパス中');
+    await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
+    await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'bypassed'));
     await expect(view.locator('#stop-all')).toBeEnabled();
     await expect(first).toBeDisabled();
     await expect(view.locator('.correction').first()).toHaveText('—');
@@ -278,10 +282,10 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     expect(bypassState.settings).toEqual(mixed.settings);
     await view.close();
     view = await popup(app, sources[0], false);
-    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
     await view.locator('body').screenshot({ path: 'test-results/popup-bypassed.png' });
     await view.locator('#bypass').click();
-    await expect(view.locator('#mix-heading')).toHaveText('ミックス中');
+    await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'mixing'));
     await expect.poll(async () => {
       const stream = (await state(view)).streams[0];
       return stream.rms[1] - stream.rms[0];
@@ -301,11 +305,11 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await expect(view.locator('#reset-pans')).toBeHidden();
     expect((await state(view)).streams.map((stream) => stream.targetPan)).toEqual(initial);
     await view.locator('#bypass').click();
-    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
     await view.locator('#stop-all').click();
     await expect(view.locator('.stream-card')).toHaveCount(0);
     await expect(view.locator('#bypass')).toBeDisabled();
-    await expect(view.locator('#mix-heading')).toHaveText('待機中');
+    await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'standby'));
     await expect(view.locator('#error')).toBeHidden();
     expect(app.errors).toEqual([]);
   } finally { await app.context.close(); }
@@ -338,7 +342,7 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     await view.locator('.solo-button').first().click();
     await expectSolo(ids[0]);
     await expect(view.locator('.solo-button').first()).toHaveAttribute('aria-pressed', 'true');
-    await expect(view.locator('#mix-heading')).toHaveText('ソロ再生中');
+    await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'soloHeading'));
     await sources[0].evaluate(() => { document.title = '長い放送タイトルでも Solo ボタンと解除ボタンが popup の幅に収まることを確認する配信'; });
     await expect(view.locator('h3').first()).toContainText('長い放送タイトル');
     const layout = await view.evaluate(() => ({ width: document.querySelector('main').clientWidth,
@@ -372,7 +376,7 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     await view.locator('.solo-button').first().click();
     await expectSolo(ids[0]);
     await view.locator('#bypass').click();
-    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
     await expectAllPlaying();
     await expect(view.locator('.solo-button').first()).toBeDisabled();
     expect((await state(view)).selectedSoloTabId).toBe(ids[0]);
@@ -437,7 +441,7 @@ test('per-tab NR suppresses noise, preserves a voiced signal, and survives solo 
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(-60);
     await view.locator('.solo-button').nth(1).click();
     await view.locator('#bypass').click();
-    await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
+    await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
     await expect(view.locator('.nr-button').first()).toBeDisabled();
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(raw - 2);
     expect((await state(view)).streams.every((stream) => stream.noiseReductionEnabled)).toBe(true);
@@ -510,10 +514,83 @@ test('NR processing failure restores the original audio without releasing captur
     await expect(view.locator('.stream-card')).toHaveCount(1);
     await view.locator('.nr-button').click();
     await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
-    await expect(view.locator('#notice')).toContainText('ノイズ抑制を解除して再生を継続');
+    await expect(view.locator('#notice')).toContainText(await localized(view, 'nrRecovered', ['', '']));
     await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'false');
     await expect(view.locator('.stream-card')).toHaveCount(1);
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeGreaterThan(-50);
     expect(app.errors).toEqual([]);
   } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
 });
+
+for (const locale of ['en', 'ja']) {
+  test(`localized popup and engine use the ${locale} catalog through native i18n`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), `stream-mixer-${locale}-`));
+    let app;
+    try {
+      // macOS headless Chrome ignores --lang. Exercise its real i18n fallback
+      // using a copy with one catalog; leave the OS and installed extension alone.
+      await cp(extensionPath, directory, { recursive: true });
+      const manifestPath = join(directory, 'manifest.json');
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      manifest.default_locale = locale;
+      await writeFile(manifestPath, JSON.stringify(manifest));
+      await rm(join(directory, '_locales', locale === 'en' ? 'ja' : 'en'), { recursive: true });
+      app = await launch('', directory);
+      const audio = await source(app, 0, 'speech-like');
+      const title = '<b>Radio</b> $1';
+      await audio.evaluate((title) => { document.title = title; }, title);
+      let view = await popup(app, audio, false);
+      await expect(view.locator('html')).toHaveAttribute('lang', locale);
+      await expect(view.locator('#add-label')).toHaveText(locale === 'ja' ? 'このタブを追加' : 'Add this tab');
+      await expect(view.locator('.settings-summary')).toHaveText(await localized(view, 'settingsSummary'));
+      const metadata = await app.worker.evaluate(() => chrome.runtime.getManifest());
+      expect(metadata.description).toBe(await localized(view, 'extensionDescription'));
+      await view.locator('#add').click();
+      await expect(view.locator('#error')).toContainText(await localized(view, 'captureError', ['']));
+      await view.close();
+      view = await popup(app, audio);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(1);
+      await expect(view.locator('#add-label')).toHaveText(locale === 'ja' ? '追加済み' : 'Added');
+      await expect(view.locator('#count')).toHaveText('1 STREAM');
+      await expect(view.locator('h3')).toHaveText(title);
+      expect(await view.locator('h3 b').count()).toBe(0);
+      await expect(view.locator('.solo-button')).toHaveAttribute('aria-label', await localized(view, 'soloEnable', [title]));
+      await view.locator('.nr-button').click();
+      await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
+      await expect(view.locator('.nr-button')).toHaveAttribute('aria-label', await localized(view, 'nrDisable', [title]));
+      await view.locator('.solo-button').click();
+      await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'ソロ再生中' : 'Solo playback');
+      await view.locator('.position-dot').focus();
+      await view.keyboard.press('End');
+      await expect(view.locator('#reset-pans')).toBeVisible();
+      // Exercise translated validation in the offscreen engine as well as worker errors.
+      const invalidPan = await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'PAN_PREFERENCE', tabId: -1, pan: 0 }));
+      expect(invalidPan).toEqual({ ok: false, error: await localized(view, 'tabReleased') });
+      await view.locator('.settings-section > summary').click();
+      await view.locator('main').evaluate((main) => { main.scrollTop = 0; });
+      const layout = await view.evaluate(() => ({
+        height: document.body.getBoundingClientRect().height,
+        width: document.body.clientWidth, scrollWidth: document.body.scrollWidth,
+        mainWidth: document.querySelector('main').clientWidth, mainScrollWidth: document.querySelector('main').scrollWidth,
+        addRight: document.querySelector('#add').getBoundingClientRect().right,
+      }));
+      expect(layout.height).toBeLessThanOrEqual(600);
+      expect(layout.scrollWidth).toBe(layout.width);
+      expect(layout.mainScrollWidth).toBe(layout.mainWidth);
+      expect(layout.addRight).toBeLessThanOrEqual(440);
+      await view.locator('body').screenshot({ path: `test-results/popup-i18n-${locale}.png` });
+      await view.locator('#bypass').click();
+      await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'バイパス中' : 'Bypassed');
+      await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
+      await expect(view.locator('.nr-button')).toHaveAttribute('title', await localized(view, 'nrBypassed'));
+      await view.close();
+      view = await popup(app, audio, false);
+      await expect(view.locator('html')).toHaveAttribute('lang', locale);
+      await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
+      await view.locator('#stop-all').click();
+      await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? '待機中' : 'Standby');
+      expect(app.errors).toEqual([]);
+    } finally { await app?.context.close(); await rm(directory, { recursive: true, force: true }); }
+  });
+}

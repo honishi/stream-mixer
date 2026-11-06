@@ -1,3 +1,4 @@
+import { t, setMessages } from './shared/i18n.js';
 import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 import { preferredPanPositions, withPanPreference } from './shared/panning.js';
 import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
@@ -26,7 +27,7 @@ async function ensureAudio() {
       channelCount: 2, channelCountMode: 'explicit' });
     master.connect(safety).connect(next.destination);
     safety.onprocessorerror = () => {
-      for (const entry of streams.values()) notifyFailure(entry, '出力処理が停止したため制御を解除しました。');
+      for (const entry of streams.values()) notifyFailure(entry, t('outputStopped'));
     };
     context = next;
   } catch (error) {
@@ -111,7 +112,7 @@ function noiseFailure(entry, node, error) {
     entry.noise = undefined;
     route(entry);
     destroyNoiseNode(node);
-    notices.push(`${entry.title}: ノイズ抑制を解除して再生を継続します。${error.message}`);
+    notices.push(t('nrRecovered', [entry.title, error.message]));
     if (notices.length > 3) notices.shift();
     chrome.runtime.sendMessage({ target: 'worker', type: 'ENGINE_CHANGED' }).catch(() => {});
   }).catch(console.error);
@@ -119,8 +120,8 @@ function noiseFailure(entry, node, error) {
 
 async function toggleNoiseReduction(tabId) {
   const entry = streams.get(tabId);
-  if (!entry) throw new Error('このタブはすでに制御を解除されています。');
-  if (bypassed) throw new Error('ミックスを再開してからノイズ抑制を切り替えてください。');
+  if (!entry) throw new Error(t('tabReleased'));
+  if (bypassed) throw new Error(t('resumeBeforeNr'));
   const enabled = !entry.noiseReductionEnabled;
   let node;
   // Leave the original path intact until the model has initialized successfully.
@@ -148,8 +149,8 @@ function applySoloGains(timeConstant = 0.02) {
 }
 
 function toggleSolo(tabId) {
-  if (bypassed) throw new Error('ミックスを再開してからソロを選択してください。');
-  if (!streams.has(tabId)) throw new Error('このタブはすでに制御を解除されています。');
+  if (bypassed) throw new Error(t('resumeBeforeSolo'));
+  if (!streams.has(tabId)) throw new Error(t('tabReleased'));
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
   applySoloGains();
 }
@@ -162,8 +163,8 @@ function endSolo(owner) {
 }
 
 function beginSolo(tabId, owner) {
-  if (bypassed || !streams.has(tabId)) throw new Error('このタブをソロ再生できません。');
-  if (typeof owner !== 'string' || !owner) throw new Error('ソロ操作が正しくありません。');
+  if (bypassed || !streams.has(tabId)) throw new Error(t('cannotSolo'));
+  if (typeof owner !== 'string' || !owner) throw new Error(t('invalidSolo'));
   solo = { tabId, owner };
   clearTimeout(soloTimer);
   applySoloGains(0.01);
@@ -175,7 +176,7 @@ function beginSolo(tabId, owner) {
 }
 
 async function setBypass(enabled) {
-  if (typeof enabled !== 'boolean') throw new Error('バイパス設定が正しくありません。');
+  if (typeof enabled !== 'boolean') throw new Error(t('invalidBypass'));
   if (enabled === bypassed) return;
   if (solo) endSolo(solo.owner);
   if (context) {
@@ -193,7 +194,7 @@ async function setBypass(enabled) {
 }
 
 function setPanPreference(tabId, pan) {
-  if (bypassed) throw new Error('ミックスを再開してから配置を調整してください。');
+  if (bypassed) throw new Error(t('resumeBeforePan'));
   const ordered = withPanPreference(panOrder.map((id) => streams.get(id)), tabId, pan, settings.spread);
   panOrder = ordered.map((entry) => entry.id);
   streams.get(tabId).panPreference = ordered.find((entry) => entry.id === tabId).panPreference;
@@ -239,9 +240,9 @@ async function add(message) {
     };
     normalize.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
     meter.port.onmessage = ({ data }) => Object.assign(entry.stats, data);
-    normalize.onprocessorerror = meter.onprocessorerror = () => notifyFailure(entry, '音声処理が停止したため制御を解除しました。');
+    normalize.onprocessorerror = meter.onprocessorerror = () => notifyFailure(entry, t('audioStopped'));
     stream.getAudioTracks().forEach((track) => {
-      track.onended = () => notifyFailure(entry, '音声の取得が終了しました。再追加してください。');
+      track.onended = () => notifyFailure(entry, t('captureEnded'));
     });
     normalize.connect(pan);
     fade.connect(meter);
@@ -262,7 +263,7 @@ async function add(message) {
 
 async function handle(message) {
   switch (message.type) {
-    case 'START': await add(message); break;
+    case 'START': setMessages(message.messages); await add(message); break;
     case 'STOP': await remove(message.tabId); break;
     case 'STOP_ALL': for (const id of [...streams.keys()]) await remove(id); break;
     case 'SETTINGS': settings = sanitizeSettings(message.settings); applySettings(); break;
@@ -278,7 +279,7 @@ async function handle(message) {
     case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
     case 'END_DRAG_SOLO': endSolo(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;
-    default: throw new Error('不明な音声操作です。');
+    default: throw new Error(t('unknownAudioOperation'));
   }
   return getState();
 }
