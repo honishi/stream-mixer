@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stream-mixer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span><h1>stream-mixer</h1></div>
+    <span id="status" class="status">STANDBY</span>
+  </header>
+  <main>
+    <section class="stage-section" aria-label="ステレオ配置">
+      <div class="section-label"><span>STEREO FIELD</span><span id="count">0 STREAMS</span></div>
+      <div class="stereo-field">
+        <div class="field-guide guide-one"></div><div class="field-guide guide-two"></div>
+        <div class="field-center"></div><div class="field-axis"></div>
+        <div id="positions"></div>
+        <p id="field-empty">音の居場所を、ひとつずつ。</p>
+        <div class="field-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
+      </div>
+    </section>
+
+    <div id="error" class="notice error" role="alert" hidden></div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <button id="resume" class="resume" hidden>音声エンジンを再開</button>
+
+    <details class="settings-section">
+      <summary>ミックス設定 <span>音量・Normalize・広がり</span></summary>
+      <section class="mix-controls" aria-label="全体設定">
+      <div class="control-row">
+        <label for="volume">全体の音量</label><input id="volume" type="range" min="0" max="100" value="80"><output for="volume" id="volume-value">80%</output>
+      </div>
+      <div class="control-row">
+        <label for="strength">Normalize</label><input id="strength" type="range" min="0" max="100" value="75"><output for="strength" id="strength-value">75%</output>
+      </div>
+      <div class="control-row">
+        <label for="spread">パンの広がり</label><input id="spread" type="range" min="0" max="100" value="65"><output for="spread" id="spread-value">65%</output>
+      </div>
+      </section>
+    </details>
+
+    <section class="streams-section" aria-label="制御中のタブ">
+      <div class="section-heading"><h2>ミックス中</h2><button id="stop-all" class="text-button" disabled>すべて解除</button></div>
+      <div id="streams"></div>
+      <div id="empty" class="empty-state"><span class="empty-symbol" aria-hidden="true">≋</span><p>放送をミックスに追加</p><span>音声が出ているタブで拡張を開くと、<br>音量と左右の配置をまとめて整えられます。</span></div>
+    </section>
+
+    <details id="candidates-section" hidden><summary>音声が出ているほかのタブ <span id="candidate-count"></span></summary><div id="candidates"></div><p class="candidate-help">対象タブに移動した後、そのタブで拡張を開いて追加してください。</p></details>
+  </main>
+  <section class="add-section" aria-label="タブの追加">
+      <button id="add" class="primary-button" disabled><span aria-hidden="true">＋</span><span id="add-label">このタブを追加</span></button>
+      <p id="add-help">タブを確認しています…</p>
+  </section>
+  <footer><span class="footer-dot"></span>音声は端末内で処理<span class="footer-right">v0.1</span></footer>
+
+  <template id="stream-template">
+    <article class="stream-card">
+      <div class="stream-heading"><span class="stream-number"></span><div class="stream-name"><h3></h3><span class="stream-state"></span></div><button class="remove-button" title="制御を解除">×</button></div>
+      <div class="stream-readings">
+        <div class="meter-group"><div class="reading-label">OUTPUT <span class="level-value"></span></div>
+          <div class="meter-row"><span>L</span><div class="meter-track"><div class="meter-fill left"></div><i class="peak-tick left"></i></div></div>
+          <div class="meter-row"><span>R</span><div class="meter-track"><div class="meter-fill right"></div><i class="peak-tick right"></i></div></div>
+        </div>
+        <div class="gain-reading"><div class="reading-label">NORMALIZE</div><strong class="correction"></strong><span class="limiter-label"></span></div>
+        <div class="pan-reading"><div class="reading-label">PAN</div><div class="pan-track"><i></i></div><span class="pan-value"></span></div>
+      </div>
+    </article>
+  </template>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

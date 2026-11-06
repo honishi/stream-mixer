@@ -5,12 +5,15 @@ class NormalizeProcessor extends AudioWorkletProcessor {
     super();
     this.dsp = new Normalizer(sampleRate);
     this.frames = 0;
+    this.active = true;
     this.port.onmessage = ({ data }) => {
+      if (data.stop) this.active = false;
       if (typeof data.strength === 'number') this.dsp.strength = Math.min(1, Math.max(0, data.strength));
     };
   }
 
   process(inputs, outputs) {
+    if (!this.active) return false;
     this.dsp.process(inputs[0] ?? [], outputs[0]);
     this.frames += outputs[0][0]?.length ?? 128;
     if (this.frames >= sampleRate / 10) {
@@ -28,9 +31,12 @@ class MeterProcessor extends AudioWorkletProcessor {
     this.frames = 0;
     this.energy = [0, 0];
     this.peak = [0, 0];
+    this.active = true;
+    this.port.onmessage = ({ data }) => { if (data.stop) this.active = false; };
   }
 
   process(inputs, outputs) {
+    if (!this.active) return false;
     const input = inputs[0];
     const output = outputs[0];
     const frames = output[0]?.length ?? 128;
@@ -59,9 +65,12 @@ class SafetyProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.limiter = new PeakLimiter(sampleRate);
+    this.active = true;
+    this.port.onmessage = ({ data }) => { if (data.stop) this.active = false; };
   }
 
   process(inputs, outputs) {
+    if (!this.active) return false;
     const input = inputs[0];
     const output = outputs[0];
     for (let i = 0; i < (output[0]?.length ?? 128); i++) {

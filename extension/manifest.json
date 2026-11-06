@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "stream-mixer",
+  "version": "0.1.0",
+  "description": "複数の放送の音量を穏やかにそろえ、左右に配置するタブ音声ミキサー。",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "tabCapture", "tabs", "storage", "offscreen"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "stream-mixer",
+    "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" }
+  },
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'self'" }
+}
