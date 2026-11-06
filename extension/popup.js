@@ -223,14 +223,16 @@ function render(state) {
   state.streams.forEach(renderStream);
   $('empty').hidden = $('field-empty').hidden = state.streams.length > 0;
   $('count').textContent = `${state.streams.length} STREAM${state.streams.length === 1 ? '' : 'S'}`;
-  $('status').textContent = !state.streams.length ? 'STANDBY' : state.bypassed ? 'BYPASS' : state.audioState !== 'running' ? 'PAUSED' : state.soloTabId != null ? '● SOLO' : '● LIVE MIX';
-  $('status').classList.toggle('live', state.streams.length > 0 && state.audioState === 'running' && !state.bypassed);
-  $('status').classList.toggle('bypassed', state.bypassed);
   document.querySelector('.stage-section').classList.toggle('bypassed', state.bypassed);
   $('bypass').textContent = state.bypassed ? 'ミックスを再開' : '全バイパス';
   $('bypass').setAttribute('aria-pressed', String(state.bypassed));
   $('bypass').disabled = busy || !state.streams.length;
-  $('mix-heading').textContent = state.bypassed ? 'バイパス中' : state.soloTabId != null ? 'ソロ再生中' : 'ミックス中';
+  let heading = 'ミックス中';
+  if (!state.streams.length) heading = '待機中';
+  else if (state.bypassed) heading = 'バイパス中';
+  else if (state.audioState !== 'running') heading = '一時停止中';
+  else if (state.soloTabId != null) heading = 'ソロ再生中';
+  $('mix-heading').textContent = heading;
   $('field-toolbar').hidden = !state.streams.length;
   if (!dragging) $('field-help').textContent = state.bypassed ? '配置を保持中 · 元の音声を再生' : !panWidth()
     ? '広がりを上げると配置を調整できます' : '数字をドラッグして配置を調整';
@@ -248,10 +250,18 @@ function render(state) {
   const isControlled = controlled.has(activeTab?.id);
   const canAdd = activeTab && /^https?:\/\//.test(activeTab.url ?? '') && activeTab.audible && !activeTab.mutedInfo?.muted;
   $('add').disabled = busy || isControlled || !canAdd;
-  $('add-label').textContent = busy ? '処理しています…' : isControlled ? 'このタブはミックス中' : 'このタブを追加';
-  $('add-help').textContent = isControlled ? 'popup を閉じても音声の調整は続きます。' : activeTab?.mutedInfo?.muted
-    ? 'タブのミュートを解除してから追加してください。' : canAdd
-      ? activeTab.title : '音声が出ている Web ページで拡張を開いてください。';
+  let addLabel = 'このタブを追加';
+  if (busy) addLabel = '処理中…';
+  else if (isControlled) addLabel = '追加済み';
+  $('add-label').textContent = addLabel;
+  $('add-icon').textContent = isControlled ? '✓' : '＋';
+  let addHelp = '音声が出ている Web ページで拡張を開いてください。';
+  if (isControlled) addHelp = 'このタブは追加済みです。popup を閉じても音声の調整は続きます。';
+  else if (activeTab?.mutedInfo?.muted) addHelp = 'タブのミュートを解除してから追加してください。';
+  else if (canAdd) addHelp = activeTab.title;
+  $('add-help').textContent = addHelp;
+  $('add').title = addHelp;
+  $('add-help').hidden = Boolean(isControlled || canAdd);
   const candidates = state.audibleTabs.filter((tab) => tab.id !== activeTab?.id);
   $('candidates-section').hidden = !candidates.length;
   $('candidate-count').textContent = candidates.length;

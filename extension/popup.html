@@ -9,9 +9,10 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span><h1>stream-mixer</h1></div>
-    <span id="status" class="status">STANDBY</span>
+    <button id="add" class="add-button" aria-describedby="add-help" disabled><span id="add-icon" aria-hidden="true">＋</span><span id="add-label">このタブを追加</span></button>
   </header>
   <main>
+    <p id="add-help">タブを確認しています…</p>
     <section class="stage-section" aria-label="ステレオ配置">
       <div class="section-label"><span>STEREO FIELD</span><span id="count">0 STREAMS</span></div>
       <div class="stereo-field">
@@ -54,10 +55,6 @@
 
     <details id="candidates-section" hidden><summary>音声が出ているほかのタブ <span id="candidate-count"></span></summary><div id="candidates"></div><p class="candidate-help">対象タブに移動した後、そのタブで拡張を開いて追加してください。</p></details>
   </main>
-  <section class="add-section" aria-label="タブの追加">
-      <button id="add" class="primary-button" disabled><span aria-hidden="true">＋</span><span id="add-label">このタブを追加</span></button>
-      <p id="add-help">タブを確認しています…</p>
-  </section>
   <footer><span class="footer-dot"></span>音声は端末内で処理<span class="footer-right">v0.1</span></footer>
 
   <template id="stream-template">

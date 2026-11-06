@@ -92,7 +92,7 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
         const layout = await view.evaluate(() => ({ bodyHeight: document.body.getBoundingClientRect().height,
           addBottom: document.querySelector('#add').getBoundingClientRect().bottom }));
         expect(layout.bodyHeight).toBeLessThanOrEqual(600);
-        expect(layout.addBottom).toBeLessThan(570);
+        expect(layout.addBottom).toBeLessThan(52);
         await view.screenshot({ path: 'test-results/popup-full.png', fullPage: true });
       }
       if (i < 5) await view.close();
@@ -263,7 +263,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
 
     await view.locator('#bypass').click();
     await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
-    await expect(view.locator('#status')).toHaveText('BYPASS');
+    await expect(view.locator('#mix-heading')).toHaveText('バイパス中');
     await expect(view.locator('#stop-all')).toBeEnabled();
     await expect(first).toBeDisabled();
     await expect(view.locator('.correction').first()).toHaveText('—');
@@ -281,7 +281,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await expect(view.locator('#bypass')).toHaveText('ミックスを再開');
     await view.locator('body').screenshot({ path: 'test-results/popup-bypassed.png' });
     await view.locator('#bypass').click();
-    await expect(view.locator('#status')).toHaveText('● LIVE MIX');
+    await expect(view.locator('#mix-heading')).toHaveText('ミックス中');
     await expect.poll(async () => {
       const stream = (await state(view)).streams[0];
       return stream.rms[1] - stream.rms[0];
@@ -305,7 +305,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await view.locator('#stop-all').click();
     await expect(view.locator('.stream-card')).toHaveCount(0);
     await expect(view.locator('#bypass')).toBeDisabled();
-    await expect(view.locator('#status')).toHaveText('STANDBY');
+    await expect(view.locator('#mix-heading')).toHaveText('待機中');
     await expect(view.locator('#error')).toBeHidden();
     expect(app.errors).toEqual([]);
   } finally { await app.context.close(); }
@@ -338,7 +338,7 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     await view.locator('.solo-button').first().click();
     await expectSolo(ids[0]);
     await expect(view.locator('.solo-button').first()).toHaveAttribute('aria-pressed', 'true');
-    await expect(view.locator('#status')).toHaveText('● SOLO');
+    await expect(view.locator('#mix-heading')).toHaveText('ソロ再生中');
     await sources[0].evaluate(() => { document.title = '長い放送タイトルでも Solo ボタンと解除ボタンが popup の幅に収まることを確認する配信'; });
     await expect(view.locator('h3').first()).toContainText('長い放送タイトル');
     const layout = await view.evaluate(() => ({ width: document.querySelector('main').clientWidth,
