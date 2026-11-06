@@ -61,20 +61,20 @@
       <div class="stream-heading">
         <div class="stream-visual"><img class="stream-preview" alt="" draggable="false" hidden><span class="stream-number"></span></div>
         <div class="stream-name"><h3></h3><span class="stream-state"></span></div>
-        <button class="remove-button" title="Release tab" data-i18n-title="remove">×</button>
+        <button class="remove-button" type="button" title="Release tab" data-i18n-title="remove"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
       <div class="stream-readings">
         <div class="stream-output">
           <div class="stream-actions">
             <div class="nr-controls">
-              <button class="nr-button" type="button" aria-pressed="false" data-i18n="nr">NR</button>
+              <button class="nr-button" type="button" aria-pressed="false" aria-label="NR" data-i18n-aria-label="nr"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12h2l1-3 2 6 1-3h2"/></svg></button>
               <select class="nr-level" aria-label="Noise reduction strength" data-i18n-aria-label="nrStrength">
                 <option value="low" data-i18n="nrLow">Low</option>
                 <option value="medium" data-i18n="nrMedium" selected>Medium</option>
                 <option value="high" data-i18n="nrHigh">High</option>
               </select>
             </div>
-            <button class="solo-button" type="button" aria-pressed="false" data-i18n="solo">Solo</button>
+            <button class="solo-button" type="button" aria-pressed="false" aria-label="Solo" data-i18n-aria-label="solo"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="5" height="8" rx="2"/><rect x="16" y="12" width="5" height="8" rx="2"/></svg></button>
           </div>
           <div class="meter-group"><div class="reading-label"><span data-i18n="output">OUTPUT</span> <span class="level-value"></span></div>
             <div class="meter-channels">
@@ -83,7 +83,7 @@
             </div>
           </div>
         </div>
-        <div class="gain-reading"><button class="normalize-button reading-label" type="button" aria-pressed="true" data-i18n="normalizeMeter">NORMALIZE</button><strong class="correction"></strong><span class="limiter-label"></span></div>
+        <div class="gain-reading"><button class="normalize-button reading-label" type="button" aria-pressed="true" aria-label="Normalize" data-i18n-aria-label="normalizeMeter"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h16M12 2v6M9 5l3 3 3-3M12 22v-6m-3 3 3-3 3 3"/></svg></button><strong class="correction"></strong><span class="limiter-label"></span></div>
         <div class="pan-reading"><div class="reading-label" data-i18n="pan">PAN</div><div class="pan-track"><i></i></div><span class="pan-value"></span></div>
       </div>
     </article>

@@ -897,6 +897,14 @@ for (const locale of ['en', 'ja']) {
       await view.locator('.nr-button').click();
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-label', await localized(view, 'nrDisable', [title]));
+      await expect(view.locator('.nr-button')).not.toHaveAttribute('aria-busy');
+      for (const selector of ['.nr-button', '.solo-button', '.normalize-button', '.remove-button']) {
+        const button = view.locator(selector);
+        await expect(button.locator('svg')).toBeVisible();
+        await expect(button).toHaveText('');
+        await expect(button).toHaveAttribute('aria-label', /.+/);
+        await expect(button).toHaveAttribute('title', /.+/);
+      }
       await expect(view.locator('.nr-level option:checked')).toHaveText(locale === 'ja' ? '中' : 'Medium');
       await view.locator('.nr-level').selectOption('low');
       await expect(view.locator('.nr-level option:checked')).toHaveText(locale === 'ja' ? '小' : 'Low');

@@ -205,10 +205,9 @@ function renderStream(stream, index) {
     card.querySelector('.nr-button').addEventListener('click', async (event) => {
       const button = event.currentTarget;
       if (busy) return;
-      button.textContent = '…';
       button.setAttribute('aria-busy', 'true');
       try { await act('TOGGLE_NR', { tabId: stream.id }); }
-      finally { button.textContent = t('nr'); button.removeAttribute('aria-busy'); }
+      finally { button.removeAttribute('aria-busy'); }
     });
     cards.set(stream.id, card);
     $('streams').append(card);
@@ -236,7 +235,7 @@ function renderStream(stream, index) {
   normalizeButton.disabled = busy || bypassed;
   normalizeButton.ariaLabel = t(stream.normalizeEnabled ? 'normalizeDisable' : 'normalizeEnable', [stream.title]);
   normalizeButton.title = bypassed ? t('resumeBeforeNormalize')
-    : t(stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint');
+    : `${t('normalize')}: ${t(stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint')}`;
   const nrButton = card.querySelector('.nr-button');
   nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
   nrButton.disabled = busy || bypassed;
@@ -252,7 +251,7 @@ function renderStream(stream, index) {
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
   soloButton.disabled = busy || bypassed;
   soloButton.ariaLabel = selectedSolo ? t('soloDisable', [stream.title]) : t('soloEnable', [stream.title]);
-  soloButton.title = selectedSolo ? t('soloDisableHint') : t('soloEnableHint');
+  soloButton.title = `${t('solo')}: ${t(selectedSolo ? 'soloDisableHint' : 'soloEnableHint')}`;
   const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
   const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
   let stateKey = 'silentState';
