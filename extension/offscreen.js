@@ -1,7 +1,7 @@
-import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
-import { preferredPanPositions, withPanPreference } from './shared/panning.js';
 import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
 import { DEFAULT_NOISE_LEVEL, NOISE_LEVELS } from './shared/noise.js';
+import { preferredPanPositions, withPanPreference } from './shared/panning.js';
+import { DEFAULT_SETTINGS, sanitizeSettings } from './shared/settings.js';
 
 const streams = new Map();
 const FOCUS_BACKGROUND_GAIN = 10 ** (-18 / 20);
@@ -43,9 +43,16 @@ function updateNormalization(entry) {
   entry.normalize.port.postMessage({ strength: settings.strength, enabled: entry.normalizeEnabled });
 }
 
-function toggleNormalization(tabId) {
+/** @returns {object} The controlled stream and its audio nodes. */
+function requireStream(tabId) {
   const entry = streams.get(tabId);
   if (!entry) throw new Error('This tab has already been released.');
+  return entry;
+}
+
+/** @returns {void} */
+function toggleNormalization(tabId) {
+  const entry = requireStream(tabId);
   if (bypassed) throw new Error('Resume the mix before changing normalization.');
   entry.normalizeEnabled = !entry.normalizeEnabled;
   updateNormalization(entry);
@@ -63,16 +70,20 @@ function applySettings() {
   });
 }
 
+/** @returns {object} */
 function getState() {
   return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
     selectedFocusTabId, focusTabId: effectiveFocusTabId(),
-    streams: cardOrder.map((id) => streams.get(id)).map((entry) => ({
-      id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
-      targetPan: entry.targetPan, panPreference: entry.panPreference,
-      normalizeEnabled: entry.normalizeEnabled, mixMuted: entry.mixMuted,
-      noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
-    })),
+    streams: cardOrder.map((id) => {
+      const entry = streams.get(id);
+      return {
+        id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
+        targetPan: entry.targetPan, panPreference: entry.panPreference,
+        normalizeEnabled: entry.normalizeEnabled, mixMuted: entry.mixMuted,
+        noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
+      };
+    }),
   };
 }
 
@@ -138,9 +149,9 @@ function noiseFailure(entry, node, error) {
   }).catch(console.error);
 }
 
+/** @returns {Promise<void>} */
 async function toggleNoiseReduction(tabId) {
-  const entry = streams.get(tabId);
-  if (!entry) throw new Error('This tab has already been released.');
+  const entry = requireStream(tabId);
   if (bypassed) throw new Error('Resume the mix before changing noise reduction.');
   const enabled = !entry.noiseReductionEnabled;
   let node;
@@ -157,9 +168,9 @@ async function toggleNoiseReduction(tabId) {
   destroyNoiseNode(previous);
 }
 
+/** @returns {void} */
 function setNoiseReductionLevel(tabId, level) {
-  const entry = streams.get(tabId);
-  if (!entry) throw new Error('This tab has already been released.');
+  const entry = requireStream(tabId);
   if (bypassed) throw new Error('Resume the mix before changing noise reduction.');
   if (typeof level !== 'string' || !Object.hasOwn(NOISE_LEVELS, level)) throw new Error('Invalid noise reduction strength.');
   entry.noiseReductionLevel = level;
@@ -181,24 +192,26 @@ function applyStreamGains(timeConstant = 0.02) {
   for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, timeConstant);
 }
 
+/** @returns {void} */
 function toggleMute(tabId) {
-  const entry = streams.get(tabId);
-  if (!entry) throw new Error('This tab has already been released.');
+  const entry = requireStream(tabId);
   entry.mixMuted = !entry.mixMuted;
   applyStreamGains();
 }
 
+/** @returns {void} */
 function toggleSolo(tabId) {
   if (bypassed) throw new Error('Resume the mix before selecting a solo tab.');
-  if (!streams.has(tabId)) throw new Error('This tab has already been released.');
+  requireStream(tabId);
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
   selectedFocusTabId = null;
   applyStreamGains();
 }
 
+/** @returns {void} */
 function toggleFocus(tabId) {
   if (bypassed) throw new Error('Resume the mix before changing Focus.');
-  if (!streams.has(tabId)) throw new Error('This tab has already been released.');
+  requireStream(tabId);
   selectedFocusTabId = selectedFocusTabId === tabId ? null : tabId;
   selectedSoloTabId = null;
   applyStreamGains();
@@ -312,22 +325,24 @@ async function add(message) {
   }
 }
 
+/** @returns {void} */
+function reorderCard(tabId, beforeTabId) {
+  requireStream(tabId);
+  if (beforeTabId !== null) requireStream(beforeTabId);
+  if (tabId === beforeTabId) return;
+  const next = cardOrder.filter((id) => id !== tabId);
+  const index = beforeTabId === null ? next.length : next.indexOf(beforeTabId);
+  next.splice(index, 0, tabId);
+  cardOrder = next;
+}
+
+/** @returns {Promise<object>} */
 async function handle(message) {
   switch (message.type) {
     case 'START': await add(message); break;
     case 'STOP': await remove(message.tabId); break;
     case 'STOP_ALL': for (const id of [...streams.keys()]) await remove(id); break;
-    case 'REORDER': {
-      if (!streams.has(message.tabId) || (message.beforeTabId !== null && !streams.has(message.beforeTabId))) {
-        throw new Error('This tab has already been released.');
-      }
-      if (message.tabId === message.beforeTabId) break;
-      const next = cardOrder.filter((id) => id !== message.tabId);
-      const index = message.beforeTabId === null ? next.length : next.indexOf(message.beforeTabId);
-      next.splice(index, 0, message.tabId);
-      cardOrder = next;
-      break;
-    }
+    case 'REORDER': reorderCard(message.tabId, message.beforeTabId); break;
     case 'SETTINGS': settings = sanitizeSettings(message.settings); applySettings(); break;
     case 'PAN_PREFERENCE': setPanPreference(message.tabId, message.pan); break;
     case 'RESET_PANS':

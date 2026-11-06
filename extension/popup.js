@@ -1,7 +1,10 @@
-import { t, localizeDocument } from './shared/i18n.js';
+import { localizeDocument, t } from './shared/i18n.js';
 import { clamp, panPositions } from './shared/settings.js';
 
-const $ = (id) => document.getElementById(id);
+/** @returns {HTMLElement | null} */
+function $(id) {
+  return document.getElementById(id);
+}
 const colors = ['#c1ed8b', '#9acbe9', '#dfb1dc', '#efca83', '#9ce0cb', '#edab99'];
 const cards = new Map();
 const dots = new Map();
@@ -29,10 +32,21 @@ function showError(error) {
   $('error').hidden = !error;
 }
 
-const meterPercent = (db) => Math.max(0, Math.min(100, (db + 60) / 60 * 100));
-function panText(pan) { return Math.abs(pan) < 0.015 ? t('center') : t(pan < 0 ? 'panLeft' : 'panRight', [Math.round(Math.abs(pan) * 100)]); }
+/** @returns {number} */
+function meterPercent(db) {
+  return clamp((db + 60) / 60 * 100, 0, 100);
+}
 
-function panWidth() { return panPositions(2, latestState?.settings.spread ?? 0)[1]; }
+/** @returns {string} */
+function panText(pan) {
+  if (Math.abs(pan) < 0.015) return t('center');
+  return t(pan < 0 ? 'panLeft' : 'panRight', [Math.round(Math.abs(pan) * 100)]);
+}
+
+/** @returns {number} */
+function panWidth() {
+  return panPositions(2, latestState?.settings.spread ?? 0)[1];
+}
 
 function endDrag(commit = false) {
   if (!dragging) return;
@@ -124,8 +138,14 @@ function attachPanControl(dot, id) {
     if (busy || dragging || latestState?.bypassed || !panWidth()) return;
     const stream = latestState.streams.find((stream) => stream.id === id);
     if (!stream) return;
-    const pan = event.key === 'Home' ? -panWidth() : event.key === 'End' ? panWidth()
-      : stream.targetPan + (event.key === 'ArrowLeft' ? -1 : 1) * panWidth() * 0.2;
+    const width = panWidth();
+    let pan;
+    switch (event.key) {
+      case 'Home': pan = -width; break;
+      case 'End': pan = width; break;
+      case 'ArrowLeft': pan = stream.targetPan - width * 0.2; break;
+      case 'ArrowRight': pan = stream.targetPan + width * 0.2; break;
+    }
     void act('PAN_PREFERENCE', { tabId: id, pan });
   });
 }
@@ -191,46 +211,37 @@ function attachCardReorder(card, id) {
   });
 }
 
-function renderStream(stream, index) {
-  let card = cards.get(stream.id);
-  if (!card) {
-    card = $('stream-template').content.firstElementChild.cloneNode(true);
-    attachCardReorder(card, stream.id);
-    card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: stream.id }));
-    card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: stream.id }));
-    card.querySelector('.focus-button').addEventListener('click', () => act('TOGGLE_FOCUS', { tabId: stream.id }));
-    card.querySelector('.mute-button').addEventListener('click', () => act('TOGGLE_MUTE', { tabId: stream.id }));
-    card.querySelector('.normalize-button').addEventListener('click', () => act('TOGGLE_NORMALIZE', { tabId: stream.id }));
-    card.querySelector('.nr-level').addEventListener('change', (event) => {
-      void act('NR_LEVEL', { tabId: stream.id, level: event.currentTarget.value });
-    });
-    card.querySelector('.nr-button').addEventListener('click', async (event) => {
-      const button = event.currentTarget;
-      if (busy) return;
-      button.setAttribute('aria-busy', 'true');
-      try { await act('TOGGLE_NR', { tabId: stream.id }); }
-      finally { button.removeAttribute('aria-busy'); }
-    });
-    cards.set(stream.id, card);
-    $('streams').append(card);
-    const dot = document.createElement('button');
-    dot.className = 'position-dot';
-    attachPanControl(dot, stream.id);
-    dots.set(stream.id, dot);
-    $('positions').append(dot);
-  }
-  const color = colors[stream.color % colors.length];
-  card.ariaLabel = t('reorderCard', [stream.title]);
-  card.querySelector('.stream-visual').title = t('reorderHint');
-  card.style.setProperty('--stream-color', color);
-  card.querySelector('.stream-number').textContent = String(index + 1).padStart(2, '0');
-  const heading = card.querySelector('h3');
-  heading.textContent = stream.title;
-  heading.title = stream.title;
-  card.querySelector('.stream-preview').alt = t('videoSnapshot', [stream.title]);
-  card.querySelector('.remove-button').ariaLabel = t('removeTab', [stream.title]);
-  card.querySelector('.remove-button').disabled = busy;
-  const state = card.querySelector('.stream-state');
+/** @returns {HTMLElement} */
+function createStreamCard(id) {
+  const card = $('stream-template').content.firstElementChild.cloneNode(true);
+  attachCardReorder(card, id);
+  card.querySelector('.remove-button').addEventListener('click', () => act('STOP', { tabId: id }));
+  card.querySelector('.solo-button').addEventListener('click', () => act('TOGGLE_SOLO', { tabId: id }));
+  card.querySelector('.focus-button').addEventListener('click', () => act('TOGGLE_FOCUS', { tabId: id }));
+  card.querySelector('.mute-button').addEventListener('click', () => act('TOGGLE_MUTE', { tabId: id }));
+  card.querySelector('.normalize-button').addEventListener('click', () => act('TOGGLE_NORMALIZE', { tabId: id }));
+  card.querySelector('.nr-level').addEventListener('change', (event) => {
+    void act('NR_LEVEL', { tabId: id, level: event.currentTarget.value });
+  });
+  card.querySelector('.nr-button').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    if (busy) return;
+    button.setAttribute('aria-busy', 'true');
+    try { await act('TOGGLE_NR', { tabId: id }); }
+    finally { button.removeAttribute('aria-busy'); }
+  });
+  cards.set(id, card);
+  $('streams').append(card);
+  const dot = document.createElement('button');
+  dot.className = 'position-dot';
+  attachPanControl(dot, id);
+  dots.set(id, dot);
+  $('positions').append(dot);
+  return card;
+}
+
+/** @returns {void} */
+function renderStreamControls(card, stream) {
   const bypassed = latestState.bypassed;
   const muteButton = card.querySelector('.mute-button');
   muteButton.setAttribute('aria-pressed', String(stream.mixMuted));
@@ -241,8 +252,9 @@ function renderStream(stream, index) {
   normalizeButton.setAttribute('aria-pressed', String(stream.normalizeEnabled));
   normalizeButton.disabled = busy || bypassed;
   normalizeButton.ariaLabel = t(stream.normalizeEnabled ? 'normalizeDisable' : 'normalizeEnable', [stream.title]);
+  const normalizeHint = stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint';
   normalizeButton.title = bypassed ? t('resumeBeforeNormalize')
-    : `${t('normalize')}: ${t(stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint')}`;
+    : `${t('normalize')}: ${t(normalizeHint)}`;
   const nrButton = card.querySelector('.nr-button');
   nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
   nrButton.disabled = busy || bypassed;
@@ -257,29 +269,20 @@ function renderStream(stream, index) {
   const selectedSolo = latestState.selectedSoloTabId === stream.id;
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
   soloButton.disabled = busy || bypassed;
-  soloButton.ariaLabel = selectedSolo ? t('soloDisable', [stream.title]) : t('soloEnable', [stream.title]);
+  soloButton.ariaLabel = t(selectedSolo ? 'soloDisable' : 'soloEnable', [stream.title]);
   soloButton.title = `${t('solo')}: ${t(selectedSolo ? 'soloDisableHint' : 'soloEnableHint')}`;
   const focusButton = card.querySelector('.focus-button');
   const selectedFocus = latestState.selectedFocusTabId === stream.id;
   focusButton.setAttribute('aria-pressed', String(selectedFocus));
   focusButton.disabled = busy || bypassed;
   focusButton.ariaLabel = t(selectedFocus ? 'focusDisable' : 'focusEnable', [stream.title]);
-  focusButton.title = bypassed ? t('resumeBeforeFocus') : t(selectedFocus ? 'focusDisableHint' : 'focusEnableHint');
-  const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
-  const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
-  let stateKey = 'silentState';
-  if (stream.muted) stateKey = 'tabMuted';
-  else if (stream.mixMuted) stateKey = 'mixMutedState';
-  else if (soloMuted) stateKey = 'otherSolo';
-  else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
-  else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
-  else if (bypassed) stateKey = 'bypassState';
-  else if (latestState.focusTabId === stream.id) stateKey = 'focusState';
-  else if (latestState.focusTabId != null) stateKey = 'otherFocus';
-  else if (playing) stateKey = 'playingState';
-  state.textContent = t(stateKey);
-  state.title = state.textContent;
-  state.classList.toggle('playing', playing && !stream.muted && !stream.mixMuted && !soloMuted);
+  const focusHint = selectedFocus ? 'focusDisableHint' : 'focusEnableHint';
+  focusButton.title = t(bypassed ? 'resumeBeforeFocus' : focusHint);
+}
+
+/** @returns {void} */
+function renderStreamMeters(card, stream) {
+  const bypassed = latestState.bypassed;
   const rms = Math.max(...stream.rms);
   card.querySelector('.level-value').textContent = rms <= -60 ? '−∞' : `${rms.toFixed(0)} dB`;
   card.querySelector('.meter-group').ariaLabel = t('outputLevel', [rms <= -60 ? t('silent') : `${rms.toFixed(0)} dBFS`]);
@@ -290,12 +293,21 @@ function renderStream(stream, index) {
     peak.hidden = stream.peak[c] < -60;
   }
   const correction = Math.abs(stream.correctionDb) < 0.05 ? 0 : stream.correctionDb;
-  card.querySelector('.correction').textContent = bypassed ? '—' : `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
+  const correctionText = `${correction > 0 ? '+' : ''}${correction.toFixed(1)} dB`;
+  card.querySelector('.correction').textContent = bypassed ? '—' : correctionText;
   const limiterLabel = card.querySelector('.limiter-label');
   limiterLabel.textContent = !bypassed && stream.limitingDb < -0.5 ? t('limiting', [stream.limitingDb.toFixed(1)]) : '';
   limiterLabel.title = limiterLabel.textContent;
   card.querySelector('.pan-track i').style.left = `${((bypassed ? 0 : stream.pan) + 1) * 50}%`;
   card.querySelector('.pan-value').textContent = bypassed ? t('bypassMeter') : panText(stream.pan);
+}
+
+/** @returns {void} */
+function renderPositionDot(stream, index) {
+  const bypassed = latestState.bypassed;
+  const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
+  const rms = Math.max(...stream.rms);
+  const color = colors[stream.color % colors.length];
   const dot = dots.get(stream.id);
   const visualPan = pendingPans.get(stream.id) ?? stream.targetPan;
   const activity = !stream.muted && !stream.mixMuted && !soloMuted && latestState.audioState === 'running' ? clamp((rms + 50) / 35, 0, 1) : 0;
@@ -312,6 +324,42 @@ function renderStream(stream, index) {
   if (dragging?.id !== stream.id) dot.setAttribute('aria-valuetext', panText(visualPan));
   dot.style.setProperty('--stream-color', color);
   if (dragging?.id !== stream.id) dot.style.left = `${50 + visualPan * 44}%`;
+}
+
+/** @returns {void} */
+function renderStream(stream, index) {
+  const card = cards.get(stream.id) ?? createStreamCard(stream.id);
+  const color = colors[stream.color % colors.length];
+  card.ariaLabel = t('reorderCard', [stream.title]);
+  card.querySelector('.stream-visual').title = t('reorderHint');
+  card.style.setProperty('--stream-color', color);
+  card.querySelector('.stream-number').textContent = String(index + 1).padStart(2, '0');
+  const heading = card.querySelector('h3');
+  heading.textContent = stream.title;
+  heading.title = stream.title;
+  card.querySelector('.stream-preview').alt = t('videoSnapshot', [stream.title]);
+  card.querySelector('.remove-button').ariaLabel = t('removeTab', [stream.title]);
+  card.querySelector('.remove-button').disabled = busy;
+  const state = card.querySelector('.stream-state');
+  const bypassed = latestState.bypassed;
+  renderStreamControls(card, stream);
+  const soloMuted = latestState.soloTabId != null && latestState.soloTabId !== stream.id;
+  const playing = (bypassed ? Math.max(...stream.rms) : stream.inputDb) > -50;
+  let stateKey = 'silentState';
+  if (stream.muted) stateKey = 'tabMuted';
+  else if (stream.mixMuted) stateKey = 'mixMutedState';
+  else if (soloMuted) stateKey = 'otherSolo';
+  else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
+  else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
+  else if (bypassed) stateKey = 'bypassState';
+  else if (latestState.focusTabId === stream.id) stateKey = 'focusState';
+  else if (latestState.focusTabId != null) stateKey = 'otherFocus';
+  else if (playing) stateKey = 'playingState';
+  state.textContent = t(stateKey);
+  state.title = state.textContent;
+  state.classList.toggle('playing', playing && !stream.muted && !stream.mixMuted && !soloMuted);
+  renderStreamMeters(card, stream);
+  renderPositionDot(stream, index);
 }
 
 function updateSlider(key) {
@@ -344,7 +392,12 @@ function render(state) {
   if (cardDrag && !controlled.has(cardDrag.id)) endCardDrag();
   if (dragging && (!controlled.has(dragging.id) || state.bypassed || !panWidth())) endDrag();
   for (const [id, card] of cards) {
-    if (!controlled.has(id)) { card.remove(); cards.delete(id); dots.get(id).remove(); dots.delete(id); pendingPans.delete(id); }
+    if (controlled.has(id)) continue;
+    card.remove();
+    cards.delete(id);
+    dots.get(id).remove();
+    dots.delete(id);
+    pendingPans.delete(id);
   }
   state.streams.forEach(renderStream);
   state.streams.forEach((stream, index) => {
@@ -481,7 +534,7 @@ for (const key of ['volume', 'strength', 'spread']) {
 }
 $('add').addEventListener('click', () => act('START', { tabId: activeTab?.id }));
 $('stop-all').addEventListener('click', () => act('STOP_ALL'));
-$('bypass').addEventListener('click', () => act(t('bypassMeter'), { enabled: !latestState?.bypassed }));
+$('bypass').addEventListener('click', () => act('BYPASS', { enabled: !latestState?.bypassed }));
 $('reset-pans').addEventListener('click', () => act('RESET_PANS'));
 $('resume').addEventListener('click', () => act('RESUME'));
 window.addEventListener('pagehide', saveSettings);

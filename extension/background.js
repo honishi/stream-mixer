@@ -40,6 +40,7 @@ async function updateBadge(count) {
   await chrome.action.setBadgeText({ text: count ? String(count) : '' });
 }
 
+/** @returns {Promise<object>} */
 async function snapshot() {
   const [settings, tabs, state, session] = await Promise.all([
     getSettings(), chrome.tabs.query({}),
@@ -47,13 +48,14 @@ async function snapshot() {
     chrome.storage.session.get('notices'),
   ]);
   const byId = new Map(tabs.map((tab) => [tab.id, tab]));
+  const controlledIds = new Set(state.streams.map((stream) => stream.id));
   return { settings, ...state,
     notices: [...new Set([...(session.notices ?? []), ...state.notices])].slice(-3),
     streams: state.streams.map((stream) => ({ ...stream,
       title: byId.get(stream.id)?.title ?? stream.title,
       muted: byId.get(stream.id)?.mutedInfo?.muted ?? false,
     })),
-    audibleTabs: tabs.filter((tab) => tab.audible && !state.streams.some((stream) => stream.id === tab.id))
+    audibleTabs: tabs.filter((tab) => tab.audible && !controlledIds.has(tab.id))
       .map((tab) => ({ id: tab.id, title: tab.title, muted: tab.mutedInfo?.muted ?? false })),
   };
 }
@@ -63,6 +65,12 @@ async function releaseEmptyEngine() {
   const state = await engine('STATE');
   await updateBadge(state.streams.length);
   if (!state.streams.length) await chrome.offscreen.closeDocument();
+}
+
+/** @returns {Promise<void>} */
+async function releaseTab(tabId) {
+  if (await hasEngine()) await engine('STOP', { tabId });
+  await releaseEmptyEngine();
 }
 
 async function startTab(tabId) {
@@ -94,10 +102,7 @@ async function handle(message) {
       return getVideoSnapshots(streams);
     }
     case 'START': return serialize(() => startTab(message.tabId));
-    case 'STOP': return serialize(async () => {
-      if (await hasEngine()) await engine('STOP', { tabId: message.tabId });
-      await releaseEmptyEngine();
-    });
+    case 'STOP': return serialize(() => releaseTab(message.tabId));
     case 'STOP_ALL': return serialize(async () => {
       if (await hasEngine()) await engine('STOP_ALL');
       await releaseEmptyEngine();
@@ -172,10 +177,7 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  serialize(async () => {
-    if (await hasEngine()) await engine('STOP', { tabId });
-    await releaseEmptyEngine();
-  }).catch(console.error);
+  serialize(() => releaseTab(tabId)).catch(console.error);
 });
 
 chrome.runtime.onStartup.addListener(() => { updateBadge(0).catch(console.error); });

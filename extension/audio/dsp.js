@@ -1,7 +1,14 @@
 import { clamp } from '../shared/settings.js';
 
-export const dbToGain = (db) => 10 ** (db / 20);
-export const gainToDb = (gain) => 20 * Math.log10(Math.max(gain, 1e-6));
+/** @returns {number} */
+export function dbToGain(db) {
+  return 10 ** (db / 20);
+}
+
+/** @returns {number} */
+export function gainToDb(gain) {
+  return 20 * Math.log10(Math.max(gain, 1e-6));
+}
 
 // Stereo-linked peak protection. Immediate attenuation, gentle recovery.
 // This is a sample-peak limiter, not a true-peak or loudness-standard meter.
