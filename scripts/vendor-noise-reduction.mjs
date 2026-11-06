@@ -1,5 +1,6 @@
 import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const root = 'node_modules/@sapphi-red/web-noise-suppressor';
 const target = 'extension/vendor/rnnoise';
@@ -19,6 +20,8 @@ if (index < 0 || !map.sourcesContent[index].includes('export { DenoiseState, Mod
 await mkdir(target, { recursive: true });
 const source = map.sourcesContent[index].replace(/[\t ]+$/gm, '');
 await writeFile(`${target}/runtime.js`, `// Vendored from @sapphi-red/web-noise-suppressor 0.4.1 source map.\n// Modified: module-local window shim, equivalent to upstream's worklet build define.\n// Trailing whitespace removed. See THIRD_PARTY_NOTICES.md for sources and licenses.\nconst window = {};\n${source}`);
+// Keep the upstream API documentation in English when regenerating the runtime.
+execFileSync('git', ['apply', 'scripts/rnnoise-comments.patch']);
 for (const file of ['rnnoise.wasm', 'rnnoise_simd.wasm']) await copyFile(`${root}/dist/${file}`, `${target}/${file}`);
 await copyFile(`${root}/LICENSE`, `${target}/LICENSE.web-noise-suppressor`);
 console.log('Vendored RNNoise runtime and both WASM variants.');

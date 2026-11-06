@@ -19,6 +19,8 @@ All files are packaged locally. No third-party server is contacted at runtime.
 module-local `window = {}` shim, equivalent to web-noise-suppressor's build-time
 `window` define, to allow Emscripten to initialize in AudioWorkletGlobalScope.
 Trailing whitespace is removed when extracting the runtime.
+Japanese API comments are translated into English using
+`scripts/rnnoise-comments.patch`; this patch does not change executable code.
 Our own worklet and frame adapter provide readiness, failure recovery, stereo
 buffering, and disposal; the upstream worklet wrapper is not used.
 

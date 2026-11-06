@@ -1,184 +1,184 @@
 # stream-mixer
 
-複数の放送の音量を穏やかにそろえ、左右へ自動配置する Chrome 拡張です。popup を閉じても音声処理を続けます。初版は各放送を対等に扱い、2〜6タブの同時再生を主な検証範囲としています。
+A Chrome extension that gently balances audio levels across live streams and spreads them across the stereo field. Audio processing continues when the popup is closed. Streams are treated equally by default; the main test coverage is for 2–6 simultaneous tabs.
 
-## インストール
+## Installation
 
-Chrome 116 以降で動作する Manifest V3 拡張です。拡張の利用に Node.js やビルドは必要ありません。
+Requires Chrome 116 or later and uses Manifest V3. Node.js and a build step are not required to use the extension.
 
-1. Chrome で `chrome://extensions` を開きます。
-2. 「デベロッパー モード」を有効にします。
-3. 「パッケージ化されていない拡張機能を読み込む」を選び、このリポジトリの **`extension` フォルダー**を指定します。
-4. ツールバーの拡張機能メニューで stream-mixer をピン留めします。
+1. Open `chrome://extensions` in Chrome.
+2. Enable **Developer mode**.
+3. Click **Load unpacked** and select this repository's **`extension` folder**.
+4. Pin stream-mixer using the extensions menu in the toolbar.
 
-ソースを更新した場合は、拡張機能一覧の再読み込みボタンを押してください。制御中のタブは再追加が必要です。
+After updating the source, reload the extension from the extensions page. Add previously controlled tabs again.
 
-## 表示言語
+## Display language
 
-日本語と英語に対応しています。Chrome の表示言語に合わせて自動で選び、日本語以外の未対応言語では英語にフォールバックします。popup の操作・説明・読み上げラベル、拡張の説明、タブ追加時の案内を翻訳しています。裏側で音量補正・パン・NRを行う音声処理のエラーや復旧通知は英語で表示します。放送タイトルと、Chrome・音声ライブラリが返す診断の詳細は原文を表示します。
+The extension supports English and Japanese. It follows Chrome's display language and falls back to English for unsupported languages. Popup controls, descriptions, accessibility labels, the extension description, and guidance for adding tabs are localized. Errors and recovery notices from the background audio processing that handles normalization, panning, and NR are in English. Stream titles and diagnostic details from Chrome or audio libraries are displayed as received.
 
-更新後は拡張を再読み込みしてください。言語設定を変えた場合は Chrome を再起動すると反映されます。拡張内の言語選択メニューはありません。
+Reload the extension after an update. Restart Chrome after changing its display language. There is no language selector in the extension.
 
-## 使い方
+## Usage
 
-1. 放送のタブで音声を再生します。タブがミュートされている場合は解除します。
-2. そのタブで stream-mixer のアイコンを開き、右上の「このタブを追加」を押します。追加後は「追加済み」になります。
-3. 別の放送でも同じ操作を繰り返します。音量補正とパン配置は自動です。
-4. popup の「ミックス設定」を開くと、全体の音量、Normalize の強さ、パンの広がりを調整できます。
-5. STEREO FIELD の数字を左右にドラッグすると、その放送をソロで聴きながら配置を調整できます。ドロップ位置を希望として、全放送を適切な間隔で再配置します。
-6. 各行のヘッドホンアイコン（Solo）を押すと、そのタブだけを再生します。もう一度押すと全体再生へ戻ります。
-7. 各行の盾と波形のアイコン（NR）で、その放送のノイズリダクションを切り替えます。隣の選択欄で強さを「小・中・大」から選べます。発話が途切れる場合は「小」にしてください。
-8. 「全バイパス」で処理を一時的に外し、「ミックスを再開」で元の設定に戻れます。
-9. 各行の × で個別解除、「すべて解除」で通常のタブ音声に戻ります。
+1. Play audio in a stream's tab. Unmute the tab if necessary.
+2. Open stream-mixer in that tab and click **Add this tab** in the upper right. The label changes to **Added**.
+3. Repeat for other streams. Volume correction and stereo placement are automatic.
+4. Open **Mix settings** to adjust overall volume, Normalize strength, and stereo width.
+5. Drag a number in **STEREO FIELD** to adjust its placement while temporarily listening to that stream solo. The drop location is treated as a preference, and all streams are repositioned with suitable spacing.
+6. Click a card's headphones icon (**Solo**) to hear only that tab. Click it again to restore the full mix.
+7. Use the shield and waveform icon (**NR**) to toggle noise reduction for that stream. Select **Low**, **Medium**, or **High** beside it. Try **Low** if speech is being cut off.
+8. Click **Bypass all** to temporarily disable processing, then **Resume mix** to restore the previous settings.
+9. Use a card's **×** to release that tab, or **Release all** to restore normal playback for all controlled tabs.
 
-音声が出ているほかのタブも一覧から探せます。一覧のボタンは対象タブに移動します。移動後、そのタブで拡張を開いて追加してください。
+Other audible tabs are listed in the popup. Clicking one switches to that tab; open the extension there to add it.
 
-### 表示の意味
+### Reading the popup
 
-popup の幅は680pxで、カードは2列に並びます。
+The popup is 680 px wide and displays stream cards in two columns.
 
-カードの操作ボタンはアイコン表示です。ヘッドホンが Solo、照準が Focus、盾と波形が NR、中央の線へ向かう上下の矢印が Normalize、スピーカーがミュート、× が制御解除です。ボタンにポインターを合わせると説明を表示します。オンのボタンはタブの色、ミュート中のボタンは赤系の色で点灯し、読み上げラベルも日本語・英語に対応します。NR の読み込み中は回転するインジケーターを表示します。
+Card controls use icons: headphones for Solo, a target for Focus, a shield and waveform for NR, arrows pointing toward a center line for Normalize, a speaker for mute, and × for release. Hover over a button for its description. Enabled controls use the tab's color, while mute uses a red tint. Accessibility labels support English and Japanese. A spinner appears while NR is loading.
 
-カードのタイトル・番号・余白をドラッグすると、表示順を並び替えられます。移動先カードの左半分で手前、右半分で後ろへの挿入を示します。ドロップするとカードと STEREO FIELD の番号を先頭から振り直します。Esc でキャンセルできます。カードにフォーカスして左右キーで1枚、上下キーで2枚、Home / End で先頭・末尾へ移動することもできます。
+Drag a card's title, number, or empty space to reorder it. The left half of a destination card indicates insertion before it; the right half indicates insertion after it. Dropping renumbers both the cards and STEREO FIELD markers from the beginning. Press Esc to cancel. With a card focused, use Left/Right to move one position, Up/Down to move two, or Home/End to move to the first/last position.
 
-表示順は popup を閉じても保持し、新しく追加したタブは末尾に並びます。並び替えで音声のパン位置・Solo・Focus・NR設定は変わらず、全バイパス中も操作できます。対象タブをすべて解除した場合や Chrome を再起動した場合は、次に追加した順に戻ります。
+The order survives closing the popup, and newly added tabs appear at the end. Reordering preserves pan positions and Solo, Focus, and NR settings, and remains available during bypass. Releasing all tabs or restarting Chrome resets the order to the order in which tabs are next added.
 
-一覧見出しに現在の状態（待機中・ミックス中・ソロ再生中・フォーカス再生中・バイパス中・一時停止中）を表示します。
+The list heading shows the current state: standby, mixing, solo playback, focus playback, bypassed, or paused.
 
-- **STEREO FIELD / PAN**：放送の左右位置。番号は一覧の番号に対応します。数字は配置の目標へ移動し、音声は滑らかに追従します。音が出ている数字には、音量に応じて光の輪が現れます。
-- **OUTPUT**：NR・normalize・ピーク抑制・パン・Solo・Focus・ミュートの適用後、全体音量を適用する前の左右 RMS メーターです。バイパス中もミュート適用後の音声を計測します。白い線は直近約100msのピーク。単位は dBFS、表示範囲は −60〜0 dBFS です。
-- **Normalize（上下の矢印）**：そのタブの自動音量補正をオン・オフにできます。点灯中がオンです。下の数値は現在の補正量で、`+3 dB` は増幅、`−3 dB` は減衰を示します。瞬間的なピーク抑制は別に表示します。
-- **無音・一時停止**：制御対象と位置を維持しています。無音を持ち上げるために補正量を増やすことはありません。
+- **STEREO FIELD / PAN**: Each stream's horizontal position. Numbers correspond to the card list. Markers move to their target positions while the audio follows smoothly. A glowing ring responds to each stream's audio level.
+- **OUTPUT**: Left and right RMS meters after NR, normalization, peak limiting, panning, Solo, Focus, and mute, but before overall volume. During bypass, meters still reflect mute. White lines show peaks from roughly the last 100 ms. The scale is −60 to 0 dBFS.
+- **Normalize (arrows)**: Toggles automatic volume correction for that tab. A lit button means it is enabled. The value below shows current correction: `+3 dB` boosts the signal and `−3 dB` attenuates it. Momentary peak limiting is shown separately.
+- **Silent / paused**: The tab remains controlled and keeps its position. Gain is not increased to amplify silence.
 
-### 動画サムネイル
+### Video thumbnails
 
-制御中のタブに取得可能な `video` 要素があると、カード左上の番号部分に54×30pxの静止画を表示します。番号を画像に重ね、カードの高さは増やしません。popup を開いた際に取得し、その後は約3秒ごとに更新します。複数の動画がある場合は再生中のものを優先し、同じ再生状態なら表示面積の大きいものを選びます。一時停止中も、読み込み済みのフレームを表示できます。
+If a controlled tab has an accessible `video` element, a 54 × 30 px snapshot appears behind the number at the top left of its card, without increasing card height. A snapshot is taken when the popup opens and refreshed about every three seconds. When multiple videos exist, playing videos take priority; among videos in the same playback state, the largest displayed area wins. A paused video can still provide a loaded frame.
 
-同一オリジンの iframe と開いた Shadow DOM 内の動画にも対応します。別オリジンの iframe、閉じた Shadow DOM、著作権保護や CORS の制約で画素を読み取れない動画は取得できません。タブの移動でアクセス権が失効した場合も含め、取得できないときや動画がなくなったときは画像を非表示にし、音声処理を続けます。
+Videos in same-origin iframes and open Shadow DOM are supported. Cross-origin iframes, closed Shadow DOM, and videos whose pixels cannot be read because of content protection or CORS restrictions are not supported. If a snapshot becomes unavailable, including after navigation revokes access, or the video disappears, the image is hidden and audio processing continues.
 
-画像は最大240×135pxの JPEG として端末内でのみ扱い、ファイルやストレージに保存せず、外部にも送信しません。popup を閉じると定期取得を停止し、再表示時には取得し直します。ページの再生状態や動画の設定は変更しません。
+Images are JPEGs of at most 240 × 135 px, handled only in memory on the device. They are not saved to files or storage, or sent elsewhere. Closing the popup stops periodic capture; reopening starts it again. Snapshot capture does not change playback state or video settings.
 
-### 音量とパン
+### Volume and panning
 
-各カードの Normalize は初期状態でオンです。オンのタブには「ミックス設定」の Normalize の強さを適用し、オフのタブには適用しません。オフへの切り替えでは、補正量を約20msの時定数で滑らかに0 dBへ戻します。NR・パン・Solo・ピーク抑制は引き続き有効です。数値表示は切り替え中の実際の補正量を表示します。
+Normalize is enabled by default on each card. Enabled tabs use the Normalize strength in **Mix settings**; disabled tabs do not. Turning it off smoothly returns correction to 0 dB with a time constant of about 20 ms. NR, panning, Solo, and peak limiting remain active. The displayed value tracks the actual correction during the transition.
 
-個別のオン・オフは popup の開き直し、カードの並び替え、全体設定の変更、全バイパス後も保持します。全バイパス中は個別ボタンを無効にします。制御解除後の再追加や Chrome 再起動後はオンに戻ります。
+Each tab's setting survives reopening the popup, card reordering, global setting changes, and bypass. Individual Normalize buttons are disabled during bypass. Releasing and re-adding a tab, or restarting Chrome, restores the default enabled state.
 
-Normalize を 0% にすると自動音量補正は徐々に 0 dB に戻ります。ピーク抑制は引き続き有効です。パンの広がりを 0% にすると全放送が中央に集まります。広がりの既定値は100%で、2タブ以上の自動配置は左端（−1）から右端（+1）まで均等に振り分けます。広がり100%ではドラッグや Home / End キーでも左右の端を指定できます。保存済みの広がりは維持するため、以前の設定を使っている場合は「ミックス設定」で100%にすると最大幅になります。再生環境は固定していません。モノラル出力では左右の分離効果はありません。
+Setting Normalize to 0% gradually returns automatic correction to 0 dB while keeping peak limiting active. Setting stereo width to 0% centers every stream. The default width is 100%; with two or more tabs, automatic placement spans the full range from left (−1) to right (+1). At 100%, dragging and the Home/End keys can also request the endpoints. Previously saved width settings are retained, so set width to 100% in **Mix settings** if an older setting limits the range. Playback hardware is not restricted. Mono output does not provide stereo separation.
 
-### ドラッグによる配置調整
+### Adjusting positions by dragging
 
-数字をつかんでいる間は、その放送だけを一時的に再生します。ドロップすると直前の再生状態へ戻り、ドロップ位置を優先しながら左右の順序と間隔を再調整します。数字はドロップした場所から再配置先へ直接移動し、いったん元の位置へ戻ることはありません。
+Holding a numbered marker temporarily solos that stream. Dropping restores the previous playback state and rebalances the order and spacing of all streams, giving priority to the drop location. The marker moves directly from the drop location to its new target without first returning to its original position.
 
-配置は固定座標への移動ではなく、希望位置と均等配置を組み合わせた調整です。希望位置への重みを均等配置の4倍にし、隣接する放送には均等配置時の65%以上の間隔を確保します。「パンの広がり」の範囲内で調整するため、混雑時にはドロップ位置から少しずれることがあります。1タブだけの場合も、端への希望は広がりの上限まで反映します。片側の既存の放送に重ねるように置くと、その放送を内側へ動かして左右順も調整します。
+Placement combines the requested position with even spacing instead of fixing the stream at an exact coordinate. Requested positions have four times the weight of even spacing, and neighboring streams retain at least 65% of their evenly spaced separation. Positions remain within the configured stereo width, so a crowded layout may shift a stream slightly from its drop location. A single stream can also reach the width limit when an endpoint is requested. Dropping onto an existing stream near an edge moves that stream inward and adjusts the ordering.
 
-- 配置の希望は popup を閉じても保持し、タブの増減や広がりの変更にも反映します。
-- 「自動配置に戻す」で希望を解除し、タブを追加した順の均等配置へ戻します。
-- 左右キーでも調整できます。Home / End は左右の端を希望位置とします。
-- Escape、ドラッグのキャンセル、popup の閉鎖で一時ソロを解除します。キャンセル時は配置を変更しません。
-- 接続異常時もソロが残り続けないよう、通信が途絶えた場合は約3秒で解除します。
-- 広がりが 0% の間はドラッグを無効にし、保存した希望は維持します。
+- Position preferences survive closing the popup and are reapplied when tabs or stereo width change.
+- **Reset positions** clears preferences and restores even placement in the order tabs were added.
+- Left/Right keys also adjust placement. Home/End request the left/right endpoints.
+- Escape, a canceled drag, or closing the popup ends temporary Solo. Canceling leaves placement unchanged.
+- If communication is lost, temporary Solo expires after about three seconds so it cannot remain stuck.
+- Dragging is disabled at 0% width, but saved preferences are retained.
 
-### 全バイパスと解除
+### Bypass and release
 
-「全バイパス」は対象タブを保持したまま、NR・normalize・パン・Solo・Focus・全体音量・ピーク抑制を音声経路から外します。元のステレオ音声をそのまま流すため、ミックス時とは音量が変わることがあります。バイパス中はミュート以外の音声設定・配置の操作を無効にし、メーターには元の音声、補正量には `—`、パンには `BYPASS` を表示します。
+**Bypass all** retains the controlled tabs but removes NR, normalization, panning, Solo, Focus, overall volume, and peak limiting from the signal path. It plays the original stereo audio, so loudness may differ from the processed mix. During bypass, audio and placement controls other than mute are disabled. Meters show the original signal after mute, correction shows `—`, and pan shows `BYPASS`.
 
-「ミックスを再開」で、それまでの設定と配置を復元します。バイパス状態も popup を閉じている間は維持します。「すべて解除」は別に残してあり、音声取得そのものを終了するときに使えます。
+**Resume mix** restores the previous settings and positions. Bypass remains active when the popup is closed. **Release all** is a separate action that stops capture entirely.
 
-### ミュートボタン
+### Mute
 
-カード右上のスピーカーアイコンで、そのタブの音声出力をミュート・解除できます。初期状態はミュート解除です。ミュート中はアイコンがスピーカーと×に変わって赤系の色で点灯し、カードに「ミュート中」と表示します。短いフェードで切り替え、音声取得や NR・Normalize の処理は続けます。Chrome 自体のタブのミュート設定は変更しません。
+The speaker icon at the top right of a card toggles that tab's output. Tabs start unmuted. While muted, the icon shows a speaker with an ×, uses a red tint, and the card displays **Muted**. Switching uses a short fade; capture, NR, and Normalize keep running. Chrome's own tab mute setting is not changed.
 
-ミュートは Solo・Focus・ドラッグ中の一時ソロ・全バイパスより優先します。ミュート中のタブをソロにすると全体が無音になり、ミュートを解除するとそのタブだけが聞こえます。全バイパス中もミュートを操作できます。popup の開き直しや並び替え後も保持し、制御を解除して追加し直すとミュート解除に戻ります。
+Mute takes priority over Solo, Focus, temporary Solo while dragging, and bypass. Soloing a muted tab makes the whole mix silent; unmuting it plays only that tab. Mute remains available during bypass and survives reopening the popup and reordering cards. Releasing and re-adding a tab resets it to unmuted.
 
-### Solo ボタン
+### Solo
 
-各タブの「Solo」は1タブだけを選んで聴く切り替えボタンです。選択中はボタンがそのタブの色で点灯し、popup を閉じても Solo を維持します。別タブの Solo を押すと選択を切り替え、選択中のボタンを再度押すと全体再生へ戻ります。音量補正・パン・全体音量の設定はそのまま適用します。
+Solo selects a single tab to hear. Its button lights up in the tab's color, and the selection persists when the popup closes. Clicking another tab's Solo button changes the selection; clicking the selected button restores the full mix. Normalization, pan, and overall volume settings still apply.
 
-- ドラッグ中は、つかんだタブの一時ソロを優先します。終了・キャンセル後は、それまでの Solo・Focus の状態へ戻ります。
-- 全バイパス中はミュートされていないタブの元音声を再生し、Solo ボタンを無効にします。選択は保持し、ミックス再開時に復元します。
-- Solo 対象のタブを閉じる・制御解除する場合は、残りのタブを全体再生に戻します。
-- Solo 中に追加したタブは無音で待機します。Chrome 再起動や全解除では Solo 選択も終了します。
+- Temporary Solo while dragging takes priority. Ending or canceling the drag restores the previous Solo or Focus state.
+- Bypass plays the original audio of all unmuted tabs and disables Solo buttons. The selection is retained and restored when the mix resumes.
+- Closing or releasing the selected tab restores the full mix for the remaining tabs.
+- Tabs added during Solo wait silently. Restarting Chrome or releasing all tabs clears the selection.
 
-### Focus ボタン
+### Focus
 
-各カードの照準アイコン（Focus）で、その放送の音量を保ちながら他の放送を18 dB下げます。他の放送も小さく聞こえるため、完全に無音にする Solo と使い分けられます。減衰は Normalize の後に適用するので、自動音量補正によって元の音量に戻ることはありません。短いフェードで切り替え、パン位置は変えません。
+A card's target icon (**Focus**) keeps that stream at its current level while reducing the others by 18 dB. Other streams remain faintly audible, unlike Solo, which silences them. Attenuation is applied after Normalize so automatic correction cannot undo it. Switching uses a short fade and does not change pan positions.
 
-- もう一度押すと解除します。別のカードの Focus を押すと対象を切り替えます。
-- Focus と通常の Solo は切り替え式です。一方をオンにすると他方の選択を解除します。
-- STEREO FIELD のドラッグ中は一時ソロを優先し、終了後に元の Focus へ戻ります。
-- ミュートは優先して維持します。Focus 対象をミュートした場合も、他の放送は小さい音量のままです。
-- 全バイパス中は Focus の減衰を外し、ボタンを無効にします。選択を保持し、ミックス再開時に復帰します。
-- popup の開き直しやカードの並び替え後も選択を保持します。新しく追加した放送は小さい音量で参加します。
-- Focus 対象のタブを解除・終了すると Focus を解除します。全解除・Chrome 再起動後も未選択に戻ります。
+- Click again to clear Focus, or click another card's Focus button to change the selected stream.
+- Focus and regular Solo are mutually exclusive: enabling one clears the other.
+- Temporary Solo while dragging a STEREO FIELD marker takes priority, then restores Focus afterward.
+- Mute retains priority. Muting the focused tab leaves other streams at their reduced levels.
+- Bypass removes Focus attenuation and disables its buttons. The selection is retained and restored when the mix resumes.
+- The selection survives reopening the popup and reordering cards. Newly added streams join at the reduced level.
+- Closing or releasing the focused tab clears Focus, as do releasing all tabs and restarting Chrome.
 
-### NR（ノイズリダクション）
+### NR (noise reduction)
 
-各タブの「NR」で会話向けのノイズ抑制を個別に有効にします。有効なボタンはそのタブの色で点灯します。初期状態はオフで、オンにしたときの強さは「中」です。抑制効果はノイズの種類・音量に左右され、弱いホワイトノイズなどでは効果が小さい場合があります。音楽・効果音も弱まる場合があるため、会話中心の放送に必要に応じて使ってください。
+Each tab's NR button enables speech-oriented noise suppression. Enabled buttons use the tab's color. NR starts disabled with **Medium** strength selected. Effectiveness depends on the noise type and level; it may have little effect on faint white noise, for example. Music and sound effects may also be reduced, so use it as needed for speech-focused streams.
 
-NR の隣で、タブごとに強さを選べます。オフの間にも強さを選択できます。
+Choose a strength beside the NR button for each tab. You can select a strength even while NR is off.
 
-| 強さ | 動作 |
+| Strength | Behavior |
 | --- | --- |
-| 小 / Low | 元の音声を75%残します。発話を残すことを優先し、ノイズ抑制は控えめです。 |
-| 中 / Medium | 元の音声を50%残します。既定の強さです。 |
-| 大 / High | NR の処理結果のみを使います。従来と同じ強さです。 |
+| Low | Retains 75% of the original audio, prioritizing speech preservation with lighter suppression. |
+| Medium | Retains 50% of the original audio. This is the default strength. |
+| High | Uses only the NR output, matching the original full-strength behavior. |
 
-「小」「中」は、モデルが誤って消した発話も元の音声から残せるよう、処理済み音声と原音を混ぜます。その分、ノイズも残ります。放送ごとの聞き心地を比べて調整してください。
+Low and Medium mix processed and original audio to retain some speech that the model might mistakenly remove. They also retain more noise. Compare the results for each stream and adjust to taste.
 
-- RNNoise を端末内で実行し、左右を別々の状態で処理します。音声をサーバーへ送信しません。
-- 強さは popup を閉じた後や NR のオン・オフ後も保持します。全バイパス中は NR と強さの操作を止め、ミックス再開時に元の設定で復帰します。
-- 強さは約20msで滑らかに切り替え、モデルの作り直しや音声経路の切断は行いません。NR のオン・オフには短いフェードを入れます。モデルの読み込みに失敗した場合は元の経路を維持し、処理中の異常時も NR を解除して音声を継続します。
-- 制御解除・Chrome 再起動後の再追加では、NR はオフ、強さは「中」に戻ります。
-- NR は処理遅延と CPU 負荷を追加します。発言者の分離や残響の除去は目的としていません。
+- RNNoise runs locally with separate state for each stereo channel. Audio is not sent to a server.
+- Strength survives closing the popup and toggling NR. Bypass disables NR controls and restores the saved settings when the mix resumes.
+- Strength transitions smoothly over about 20 ms without rebuilding the model or disconnecting the audio path. Toggling NR uses a short fade. A model loading failure preserves the original path; a processing failure disables NR and keeps playback running.
+- Releasing and re-adding a tab, or restarting Chrome, resets NR to off and strength to Medium.
+- NR adds latency and CPU load. It is not intended for speaker separation or dereverberation.
 
-### 継続・保存
+### Persistence
 
-- popup を閉じても音声処理を継続します。動画サムネイルの取得は停止します。
-- 一時停止・無音では、制御対象とパン位置を維持します。
-- タブを閉じる・制御を解除すると、残った放送を左右へ滑らかに再配置します。
-- 全体の音量・Normalize・広がりは端末に保存します。
-- Chrome 再起動後は、対象タブを手動で再追加します。
+- Audio processing continues when the popup closes; video snapshot capture stops.
+- Paused or silent tabs remain controlled and retain their pan positions.
+- Closing or releasing a tab smoothly repositions the remaining streams.
+- Overall volume, Normalize strength, and stereo width are saved locally.
+- After restarting Chrome, add the desired tabs again manually.
 
-## 音声処理
+## Audio processing
 
 ```text
-各タブの MediaStream
-  → RNNoise（NR オン時のみ、左右個別）
-  → ステレオ対応 normalize + 左右連動ピーク抑制
+Each tab's MediaStream
+  → RNNoise (only when NR is enabled, separate channel states)
+  → Stereo normalization + linked-channel peak limiting
   → StereoPanner
-  → 開始・切替フェード / Solo・Focus・ドラッグ中の一時ソロ / ミュート
-  → 左右の音量計測
-  → 全タブを合算 → 全体音量 → 出力ピーク抑制 → 再生
+  → Start/switch fades / Solo, Focus, temporary drag Solo / Mute
+  → Left/right level metering
+  → Sum all tabs → Overall volume → Output peak limiting → Playback
 
-全バイパス中:
-各タブの MediaStream → 切替フェード / ミュート → 左右の音量計測 → 再生
+During bypass:
+Each tab's MediaStream → Switch fades / Mute → Left/right metering → Playback
 ```
 
-normalize は RMS を基準とする穏やかな自動ゲイン調整です。−50 dBFS 以下の入力を音量の基準に取り込まず、基準音量は約0.7秒で平滑化します。目標は −22 dBFS RMS、補正範囲は −18〜+12 dB。強さに応じて補正量を縮小し、音量を下げるときは約0.35秒、上げるときは約3秒の時定数で追従します。
+Normalization uses gentle RMS-based automatic gain control. Input at or below −50 dBFS is excluded from the reference level, which is smoothed over about 0.7 seconds. The target is −22 dBFS RMS, with correction limited to −18 to +12 dB. The strength setting scales the correction. Gain follows falling targets with a time constant of about 0.35 seconds and rising targets with one of about three seconds.
 
-normalize は左右を同じゲインで処理し、モノラルへの変換は行いません。StereoPanner の性質上、パンに応じて左右の混合比は変化します。各放送には −4 dBFS、合算後には −1 dBFS のサンプルピーク制限を設けています。これは LUFS 測定や true-peak 制限ではありません。発言者の分離は行いません。ノイズ抑制は各タブの NR がオンの場合のみ適用します。
+Normalization applies the same gain to both channels without converting them to mono. StereoPanner changes the channel blend according to pan position. Sample peaks are limited to −4 dBFS per stream and −1 dBFS after summing. This is neither LUFS measurement nor true-peak limiting. There is no speaker separation. Noise suppression runs only for tabs with NR enabled.
 
-音声処理は 48 kHz で動作し、異なるサンプルレートの入力はブラウザが変換します。NR は480サンプル単位で処理し、フレーム変換による10msとモデル内部の10msを合わせて20msの遅延があります。「小」「中」で混ぜる原音も960サンプル（20ms）遅らせ、時間をそろえています。これは NR 部分の遅延で、タブの取得・出力デバイスなどによる遅延は別に加わります。
+Audio processing runs at 48 kHz; the browser resamples inputs with other sample rates. NR processes 480-sample frames, adding 20 ms of latency: 10 ms for frame adaptation and 10 ms inside the model. The original audio mixed in at Low and Medium is also delayed by 960 samples (20 ms) to align it with the processed signal. These figures cover NR only; tab capture and output devices add their own latency.
 
-## 権限とデータ
+## Permissions and data
 
-音声は端末内の Web Audio で処理します。録音・ファイル保存・サーバー送信は行いません。外部スクリプト、配信ページへのスクリプト注入、サイトごとのホスト権限も使用しません。
+Audio is processed locally with Web Audio. It is not recorded, saved to files, or sent to a server. The extension uses no remotely hosted scripts or site-specific host permissions. A local snapshot function runs only in controlled tabs authorized through `activeTab`.
 
-| 権限 | 用途 |
+| Permission | Purpose |
 | --- | --- |
-| `activeTab` | ユーザーが拡張を開いたタブを制御対象として扱う |
-| `tabCapture` | 追加したタブの音声を取得する |
-| `scripting` | `activeTab` で許可された制御中のタブから動画サムネイルを取得する |
-| `tabs` | 音声が出ているタブの検出、タイトル・URLの確認、対象タブへの移動 |
-| `storage` | 全体設定をローカル保存。処理終了の通知はセッション中のみ保持 |
-| `offscreen` | popup に依存せず音声処理を継続する |
+| `activeTab` | Authorize access to the tab where the user opens the extension. |
+| `tabCapture` | Capture audio from added tabs. |
+| `scripting` | Capture video thumbnails from controlled tabs authorized through `activeTab`. |
+| `tabs` | Find audible tabs, read titles and URLs, and switch to a selected tab. |
+| `storage` | Save global settings locally; retain processing notices for the current session only. |
+| `offscreen` | Keep audio processing independent of the popup. |
 
-Chrome の仕様により、音声が出ている全タブを無操作で取得することはできません。追加したいタブで拡張を起動する操作が必要です。同じタブを別の拡張が取得中の場合など、取得できなかった理由は popup に表示します。保護されたコンテンツや各配信サービスでの動作は、実際のサービスごとの確認が必要です。
+Chrome requires user interaction to capture a tab; the extension cannot automatically capture every audible tab. Open the extension in each tab you want to add. Capture failures, such as another extension already capturing the tab, are shown in the popup. Protected content and compatibility with individual streaming services require testing on those services.
 
-## 開発・検証
+## Development and testing
 
-Node.js 22 以降を使用します。
+Use Node.js 22 or later.
 
 ```sh
 npm ci
@@ -188,77 +188,77 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-- 単体テスト：音量差の収束、無音時のゲイン維持、急なピーク、ステレオ比率、補正無効化、合算後の制限、パン配置、設定値の検証。
-- ブラウザテスト：分離した Chromium プロファイルで6個の音声タブを生成し、実際の `tabCapture`・offscreen・AudioWorklet を使用。ツールバー操作に相当する CDP 操作で権限を付与し、本物の popup 文書をテスト用のタブに表示して操作します。音声処理をモックせず、スピーカーへの最終出力だけをテスト用デバイスに置き換えます。
-- 継続性：全放送の31秒間の無音、popup 閉鎖、service worker 停止後にも制御を維持することを検証。
-- 解除・権限・保存：タブ閉鎖、個別解除、全解除とリソース解放、未承認タブの取得拒否、ブラウザ再起動後の設定復元を検証。
-- 配置・一時ソロ：希望位置を考慮した再配置、ドロップ後の座標追跡、キャンセル、popup 閉鎖後のソロ解除、音量に反応するアイコンを検証。
-- 全バイパス：元のステレオ音声のレベル、設定・配置の保持、popup の開き直しとミックス復帰を検証。
-- Solo ボタン：実音声の切り替え、popup 閉鎖後の保持、一時ドラッグとバイパスからの復帰、タブ追加・終了時の動作を検証。
-- NR：実際の WASM モデルによる背景ノイズの減衰と声を模した信号の保持、左右の独立処理、Solo・全バイパス・popup 再表示との連携、3段階の強さ、モデルが消した音声の保持と切替の平滑化、同梱 WASM と原音の960サンプルの時間合わせ、6タブ同時の NR、繰り返し切り替え、モデル読み込み・処理中の失敗時の再生継続を検証。
-- 多言語：翻訳キー・差し込み引数の整合性と、日英の表示・操作・エラー・680px 幅・2列のカード配置を検証。macOS の headless Chrome は `--lang` を反映しないため、翻訳別の検証はコピーした拡張に対象カタログだけを残し、Chrome 本来のフォールバックを使用します。OS の言語設定は変更しません。
-- 動画サムネイル：実際の動画フレームの定期更新、再生中の動画の優先、同一オリジン iframe / Shadow DOM、タブごとの画像、権限がない場合と動画が消えた場合の非表示、popup 閉鎖後の取得停止と再表示時の復帰を検証。
-- Focus：対象の音量保持と他の放送の18 dB減衰、解除・対象切替、Solo・一時ソロ・ミュート・全バイパスとの連携、popup・並び替え後の保持、タブ追加・解除を検証。
-- ミュート：実音声の停止・復帰、Solo・一時ソロ・全バイパスとの優先関係、NR・Normalizeとの併用、並び替え・popup 再表示後の保持、再追加時の初期状態を検証。
-- カード並び替え：ドラッグ・キーボードでの移動、キャンセル、番号の振り直し、音声設定の保持、popup 再表示、タブ追加・解除との連携を検証。
-- 個別Normalize：既定オン、増幅・減衰と無音時の滑らかな解除、ピーク抑制、全体の強さとの連携、NR・Solo・並び替え・バイパス・popup 再表示後の保持、再追加時の既定値を検証。
-- popup のスクリーンショットは `test-results/` に出力します。
+- **Unit tests** cover level convergence, gain retention during silence, sudden peaks, stereo ratios, disabling correction, output limiting, pan placement, and settings validation.
+- **Browser tests** create six audio tabs in an isolated Chromium profile and use real `tabCapture`, offscreen documents, and AudioWorklets. CDP grants permissions through the equivalent of a toolbar action. Tests interact with the actual popup document rendered in a test tab. Audio processing is not mocked; only the final speaker output uses a test device.
+- **Persistence** covers 31 seconds of silence across all streams, closing the popup, and stopping the service worker.
+- **Release, permissions, and storage** cover tab closure, individual and full release, resource cleanup, rejection of unapproved capture, and settings restoration after a browser restart.
+- **Placement and temporary Solo** cover rebalancing around preferences, marker movement after a drop, cancellation, release of temporary Solo when the popup closes, and audio-reactive markers.
+- **Bypass** covers original stereo levels, settings and position retention, reopening the popup, and restoring the mix.
+- **Solo** covers actual audio switching, persistence after closing the popup, restoration after dragging and bypass, and adding or closing tabs.
+- **NR** covers noise attenuation and preservation of a speech-like signal with the real WASM model, independent stereo channels, Solo and bypass interactions, popup reopening, all three strengths, retention of model-suppressed speech, smooth transitions, 960-sample alignment of the bundled WASM output and original audio, six simultaneous NR streams, repeated toggling, and continued playback after loading or processing failures.
+- **Localization** covers translation keys and substitution arguments, English and Japanese display and controls, English audio diagnostics, the 680 px width, and two-column cards. Headless Chrome on macOS ignores `--lang`, so locale tests copy the extension, retain only the target catalog, and use Chrome's native fallback. The OS language is not changed.
+- **Video thumbnails** cover periodic updates from real video frames, preference for playing videos, same-origin iframes and Shadow DOM, per-tab images, hiding unavailable or unauthorized previews, stopping capture when the popup closes, and restarting it when reopened.
+- **Focus** covers preservation of the selected level, 18 dB attenuation of other streams, clearing and switching selection, interactions with Solo, temporary Solo, mute, and bypass, persistence across popup reopening and reordering, and adding or releasing tabs.
+- **Mute** covers actual silence and recovery, precedence over Solo, temporary Solo, and bypass, use with NR and Normalize, persistence across reordering and popup reopening, and the default state after re-adding a tab.
+- **Card reordering** covers dragging and keyboard controls, cancellation, renumbering, audio settings retention, popup reopening, and adding or releasing tabs.
+- **Per-tab Normalize** covers the enabled default, smooth removal of boosts or cuts and behavior during silence, peak limiting, global strength, interactions with NR, Solo, reordering, bypass, and popup reopening, and the default after re-adding a tab.
+- Popup screenshots are saved to `test-results/`.
 
-ブラウザテストは生成した音声による機能検証です。実際の配信の聞き心地、配信サイト固有の制約、長時間利用の負荷は別途確認してください。
+Browser tests use generated audio to verify functionality. Listening quality on real streams, site-specific restrictions, and long-term resource usage still need separate evaluation.
 
-### GitHub Releases へのリリース
+### Publishing GitHub Releases
 
-`honishi/stream-mixer` に `v1.2.3` 形式のタグを push すると、GitHub Actions の `Release` workflow が単体テスト・静的チェック・Chromium のブラウザテストを実行し、成功した場合に GitHub Release を公開します。ZIP と SHA-256 チェックサムを添付し、リリースノートを自動生成します。認証には標準の `GITHUB_TOKEN` を使うため、追加の Secret は不要です。
+Pushing a tag such as `v1.2.3` to `honishi/stream-mixer` triggers the **Release** GitHub Actions workflow. It runs unit tests, static checks, and Chromium browser tests, then publishes a GitHub Release if they pass. The release includes a ZIP and SHA-256 checksum, with automatically generated release notes. It uses the standard `GITHUB_TOKEN`; no additional secret is required.
 
 ```sh
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-タグには workflow を含むコミットを指定してください。`v1.2.3-rc.1` のようなタグはプレリリースとなり、Latest には設定しません。各数値は0〜65535、全桁0や先頭の余分な0は不可です。ビルドメタデータ（`+build.1`）は扱いません。
+Tag a commit that includes the workflow. Tags such as `v1.2.3-rc.1` create prereleases and are not marked Latest. Each numeric component must be between 0 and 65535, with no extra leading zeros; the components cannot all be zero. Build metadata such as `+build.1` is not supported.
 
-添付する `stream-mixer-v0.1.0.zip` は、直下に `manifest.json` がある拡張本体です。展開後のフォルダーを Chrome の「パッケージ化されていない拡張機能を読み込む」で指定できます。RNNoise の WASM・ライセンス・翻訳・アイコンも含みます。Chrome Web Store への公開は行いません。
+The attached `stream-mixer-v0.1.0.zip` contains the extension with `manifest.json` at its root. Extract it, then select that folder with Chrome's **Load unpacked** button. RNNoise WASM files, licenses, translations, and icons are included. The workflow does not publish to the Chrome Web Store.
 
-ZIP 内の `manifest.version` はタグの数値部分、`version_name` は `v` を除いたタグ全体に置き換えます。リポジトリの manifest や package.json は書き換えません。プレリリースと正式版で数値部分が同じ場合、Chrome 上のバージョン比較では同じ扱いになります。
+Inside the ZIP, `manifest.version` uses the tag's numeric portion and `version_name` uses the full tag without `v`. The repository's manifest and package.json are not modified. A prerelease and final release with the same numeric portion compare as the same version in Chrome.
 
-ローカルで配布物だけ確認する場合は、Git と `zip` コマンドが使える環境で実行します。
+To inspect a package locally, run this command with Git and `zip` available:
 
 ```sh
 npm run release:package -- v0.1.0
 ```
 
-`dist/` に ZIP とチェックサムを生成します。梱包対象は Git 管理下の `extension/` 内のファイルです。新規ファイルは先に Git に追加してください。テストには `unzip` も必要です。既存の同名リリースは上書きしません。公開に失敗してドラフトが残った場合は、その内容を確認してドラフトを削除してから workflow を再実行してください。
+The ZIP and checksum are written to `dist/`. Only Git-tracked files under `extension/` are packaged, so add new files to Git first. Tests also require `unzip`. An existing release with the same name is not overwritten. If publishing fails and leaves a draft, inspect and delete that draft before rerunning the workflow.
 
-### 翻訳の追加
+### Adding translations
 
-`extension/_locales/en/messages.json` を新しい言語のディレクトリにコピーして翻訳し、`locale` の値をその言語コードにします。既存キーと `placeholders` の対応を維持し、`npm test` とブラウザテストで表示を確認してください。翻訳に HTML は使用せず、表示時は文字列として扱います。
+Copy `extension/_locales/en/messages.json` into a directory for the new locale and translate it. Set the `locale` message to the new locale code. Preserve existing keys and `placeholders`, then run `npm test` and the browser tests to check the result. Translations are plain text, not HTML.
 
-Chrome 標準の [`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) を使用しています。翻訳APIを直接使えない offscreen 文書（popup を閉じても音声処理を続ける非表示のページ）は翻訳対象にせず、英語の診断文を返します。翻訳一覧の転送や独自の文字置換は行いません。外部の翻訳サービスや追加権限は使用しません。
+The extension uses Chrome's standard [`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) API. The offscreen document—the hidden page that keeps audio processing running after the popup closes—does not use localization and returns English diagnostics. There is no translation bundle transfer or custom substitution mechanism, and no external translation service or additional permission.
 
-### RNNoise の配布資産
+### Bundled RNNoise assets
 
-[`@sapphi-red/web-noise-suppressor`](https://github.com/sapphi-red/web-noise-suppressor) 0.4.1 に同梱された RNNoise ランタイムと WASM を `extension/vendor/rnnoise/` に固定配置しています。拡張の利用時にダウンロードは発生しません。Worklet とフレーム変換は、この拡張の状態管理・ステレオ処理・エラー復帰に合わせて実装しています。
+The RNNoise runtime and WASM files bundled with [`@sapphi-red/web-noise-suppressor`](https://github.com/sapphi-red/web-noise-suppressor) 0.4.1 are pinned under `extension/vendor/rnnoise/`. Nothing is downloaded when the extension runs. The worklet and frame adapter are implemented for this extension's state management, stereo processing, and error recovery.
 
-`npm ci` の後、`npm run vendor:nr` でランタイムと WASM を再生成できます。依存の更新時は生成スクリプトのバージョン・ハッシュ検証、同梱ライセンス、ブラウザテストを確認してください。出典・変更点・ライセンスは `extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md` に記載しています。Manifest の `wasm-unsafe-eval` は、同梱 WASM の実行に使用します。
+After `npm ci`, run `npm run vendor:nr` to regenerate the runtime and WASM files. When updating the dependency, review the generator's version and hash checks, bundled licenses, and browser tests. Sources, modifications, and licenses are documented in `extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md`. The manifest's `wasm-unsafe-eval` setting permits execution of the bundled WASM.
 
-## 構成
+## Project structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `extension/background.js` | 権限・タブ操作、offscreen の起動、設定保存。操作を直列化 |
-| `extension/offscreen.js` | 音声グラフ、各タブの状態、エラー時の解除 |
-| `extension/audio/dsp.js` | ブラウザに依存しない音量補正・ピーク制限 |
-| `extension/audio/noise-*.js` | NR ノードの準備・解放、Worklet、480サンプルのフレーム変換 |
-| `extension/vendor/rnnoise/` | RNNoise ランタイム・WASM・ライセンス |
-| `extension/audio/processors.js` | AudioWorklet の処理と約10Hzの計測 |
-| `extension/popup.*` | 表示と操作。開いている間のみ状態を取得 |
-| `extension/_locales/*/messages.json` | 言語別の表示・通知・エラーメッセージ |
-| `extension/shared/i18n.js` | Chrome標準の翻訳取得、HTML への適用 |
-| `extension/shared/settings.js` | 設定の既定値・検証とパン配置 |
-| `extension/shared/noise.js` | NR の3段階の強さと既定値 |
-| `extension/video-snapshot.js` | 許可されたタブ内の動画選択とサムネイル取得 |
-| `extension/shared/panning.js` | 希望位置と放送間の間隔を考慮した再配置 |
+| `extension/background.js` | Permissions, tab operations, offscreen startup, settings storage, and serialized operations. |
+| `extension/offscreen.js` | Audio graph, per-tab state, and release after failures. |
+| `extension/audio/dsp.js` | Browser-independent volume correction and peak limiting. |
+| `extension/audio/noise-*.js` | NR node creation and disposal, the worklet, and 480-sample frame adaptation. |
+| `extension/vendor/rnnoise/` | RNNoise runtime, WASM files, and licenses. |
+| `extension/audio/processors.js` | AudioWorklet processing and metering at roughly 10 Hz. |
+| `extension/popup.*` | Display and controls; state is fetched only while the popup is open. |
+| `extension/_locales/*/messages.json` | Localized labels, notices, and error messages. |
+| `extension/shared/i18n.js` | Chrome-native message lookup and HTML localization. |
+| `extension/shared/settings.js` | Default settings, validation, and even pan placement. |
+| `extension/shared/noise.js` | The three NR strengths and their default. |
+| `extension/video-snapshot.js` | Video selection and thumbnail capture in authorized tabs. |
+| `extension/shared/panning.js` | Rebalancing based on position preferences and spacing. |
 
-タブごとの手動音量は今後の追加候補です。
+Manual volume adjustment per tab is a possible future addition.
 
-設計の根拠：[tabCapture API](https://developer.chrome.com/docs/extensions/reference/api/tabCapture)、[offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen)、[Chrome の音声取得ガイド](https://developer.chrome.com/docs/extensions/how-to/web-platform/screen-capture)。
+Design references: [tabCapture API](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen), and [Chrome audio capture guide](https://developer.chrome.com/docs/extensions/how-to/web-platform/screen-capture).

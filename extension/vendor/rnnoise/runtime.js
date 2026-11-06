@@ -1545,14 +1545,14 @@ run();
 })();
 
 /**
- * WebAssembly 用にビルドした [RNNoise](https://github.com/shiguredo/rnnoise) の API を提供するためのクラス
+ * Provides the API for [RNNoise](https://github.com/shiguredo/rnnoise) compiled to WebAssembly.
  *
- * インスタンスを作成するためには {@link Rnnoise.load} 関数を使用してください
+ * Use {@link Rnnoise.load} to create an instance.
  */
 class Rnnoise {
     rnnoiseModule;
     /**
-     * 一度の {@link DenoiseState.processFrame} メソッド呼び出しで処理可能なサンプル数
+     * Number of samples processed by one call to {@link DenoiseState.processFrame}.
      */
     frameSize;
     constructor(rnnoiseModule) {
@@ -1560,13 +1560,13 @@ class Rnnoise {
         this.frameSize = rnnoiseModule._rnnoise_get_frame_size();
     }
     /**
-     * wasm ファイルをロードして {@link Rnnoise} のインスタンスを生成する関数
+     * Loads the WASM file and creates an {@link Rnnoise} instance.
      *
-     * @param options 指定可能なオプション群
-     * @returns 生成された {@link Rnnoise} インスタンス
+     * @param options Configuration options.
+     * @returns The newly created {@link Rnnoise} instance.
      *
      * @remarks
-     * 実行環境が WebAssembly の SIMD に対応している場合には、SIMD 版の wasm ファイルがロードされます
+     * Loads the SIMD variant when the environment supports WebAssembly SIMD.
      */
     static async load(options = {}) {
         const rnnoiseModule = await simd().then((isSupported) => {
@@ -1600,19 +1600,19 @@ class Rnnoise {
         return new Rnnoise(rnnoiseModule);
     }
     /**
-     * ノイズ抑制を行うための {@link DenoiseState} インスタンスを生成します
+     * Creates a {@link DenoiseState} instance for noise suppression.
      *
-     * @param model 使用するノイズ抑制モデル（省略時はデフォルトモデル）
-     * @returns 生成されたインスタンス
+     * @param model Noise suppression model; uses the default model when omitted.
+     * @returns The newly created instance.
      */
     createDenoiseState(model) {
         return new DenoiseState(this.rnnoiseModule, model);
     }
     /**
-     * ノイズ抑制に使用する RNNoise のモデルを生成します
+     * Creates an RNNoise model for noise suppression.
      *
-     * @param モデル定義文字列
-     * @return 生成されたモデルインスタンス
+     * @param modelString Model definition string.
+     * @return The newly created model instance.
      */
     createModel(modelString) {
         return new Model(this.rnnoiseModule, modelString);
@@ -1620,12 +1620,12 @@ class Rnnoise {
 }
 const F32_BYTE_SIZE = 4;
 /**
- * ノイズ抑制に必要な状態を保持するクラス
+ * Holds the state needed for noise suppression.
  *
- * インスタンスを作成するためには {@link Rnnoise.createDenoiseState} メソッドを使用してください
+ * Use {@link Rnnoise.createDenoiseState} to create an instance.
  *
- * なお、メモリリークを防ぐために、インスタンスが不要となったら {@link DenoiseState.destroy} メソッドを
- * 呼び出す必要があることに注意してください
+ * Call {@link DenoiseState.destroy} when the instance is no longer needed
+ * to prevent memory leaks.
  */
 class DenoiseState {
     rnnoiseModule;
@@ -1634,9 +1634,9 @@ class DenoiseState {
     pcmOutputBuf;
     frameSize;
     /**
-     * 使用しているノイズ抑制モデル
+     * The noise suppression model in use.
      *
-     * `undefined` の場合はデフォルトモデルが使われていることを意味します
+     * `undefined` means the default model is in use.
      */
     model;
     /**
@@ -1664,22 +1664,22 @@ class DenoiseState {
         this.pcmOutputBuf = pcmOutputBuf;
     }
     /**
-     * 音声フレームにノイズ抑制処理を適用するメソッド
+     * Applies noise suppression to an audio frame.
      *
-     * @param frame ノイズ抑制処理の対象となる音声フレーム
+     * @param frame Audio frame to process.
 
      * @returns
-     * VAD (voice-activity-detection) の結果を返します
+     * The voice activity detection (VAD) result.
      *
-     * 結果の範囲は0から1で、値が大きいほど、入力音声フレームに人の声が含まれている可能性が高いことを意味します
+     * Ranges from 0 to 1; higher values indicate a greater likelihood of human speech.
      *
      * @throws
-     * 入力音声フレームに含まれるサンプルの数 (`frame.length`) が {@link Rnnoise.frameSize} と異なる場合にエラーが送出されます
+     * Throws if the sample count (`frame.length`) differs from {@link Rnnoise.frameSize}.
      *
      * @remarks
-     * RNNoise は入力音声フレームが 16ビットPCM であると仮定しているため、
-     * それ以外のフォーマットのフレームを処理したい場合には、
-     * 呼び出し側で事前に変換を行っておく必要があります
+     * RNNoise expects samples on the 16-bit PCM amplitude scale.
+     * Callers must convert frames from other formats
+     * to that scale before processing.
      */
     processFrame(frame) {
         if (this.rnnoiseModule === undefined) {
@@ -1696,9 +1696,9 @@ class DenoiseState {
         return vad;
     }
     /**
-     * インスタンスが割り当てた wasm 内の領域を解放します
+     * Frees the WASM memory allocated by this instance.
      *
-     * 本メソッド呼び出し後に {@link DenoiseState.processFrame} メソッドを呼ぶとエラーとなります
+     * Calling {@link DenoiseState.processFrame} afterward throws an error.
      */
     destroy() {
         if (this.rnnoiseModule !== undefined) {
@@ -1710,9 +1710,9 @@ class DenoiseState {
     }
 }
 /**
- * ノイズ抑制に使用する RNNoise のモデル
+ * An RNNoise model used for noise suppression.
  *
- * インスタンスを作成するためには {@link Rnnoise.createModel} メソッドを使用してください
+ * Use {@link Rnnoise.createModel} to create an instance.
  */
 class Model {
     rnnoiseModule;
@@ -1725,7 +1725,7 @@ class Model {
      **/
     constructor(rnnoiseModule, modelString) {
         this.rnnoiseModule = rnnoiseModule;
-        // モデル定義文字列を、ヌル終端文字列に変換してから `rnnoise_model_from_string` 関数を呼び出す
+        // Null-terminate the model definition before calling `rnnoise_model_from_string`.
         const modelCString = new TextEncoder().encode(modelString + "\x00");
         const modelCStringPtr = rnnoiseModule._malloc(modelCString.length);
         rnnoiseModule.HEAPU8.subarray(modelCStringPtr, modelCStringPtr + modelCString.length).set(modelCString);
@@ -1736,10 +1736,10 @@ class Model {
         }
     }
     /**
-     * モデルに割り当てられた wasm 内の領域を解放します
+     * Frees the WASM memory allocated for the model.
      *
-     * このモデルを参照している {@link DenoiseState} が存在する場合には、
-     * 先にそちらの {@link DenoiseState.destroy} メソッドを呼ぶように注意してください
+     * First call {@link DenoiseState.destroy} on any denoising states
+     * that still reference this model.
      */
     free() {
         if (this.rnnoiseModule !== undefined) {
