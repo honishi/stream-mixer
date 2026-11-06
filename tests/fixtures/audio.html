@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>テスト放送</title></head><body>
+<h1>stream-mixer テスト放送</h1><button id="play">再生</button><button id="pause">一時停止</button>
+<script>
+const params = new URLSearchParams(location.search);
+document.title = params.get('title') || 'テスト放送';
+document.querySelector('h1').textContent = document.title;
+let context, gain;
+document.querySelector('#play').onclick = async () => {
+  if (!context) {
+    context = new AudioContext();
+    gain = context.createGain();
+    gain.gain.value = Number(params.get('amplitude') || 0.08);
+    const source = context.createOscillator();
+    source.frequency.value = Number(params.get('frequency') || 440);
+    source.connect(gain).connect(context.destination);
+    source.start();
+  }
+  await context.resume();
+};
+document.querySelector('#pause').onclick = () => context?.suspend();
+</script></body></html>
