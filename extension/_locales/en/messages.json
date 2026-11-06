@@ -509,5 +509,42 @@
   },
   "mixMutedState": {
     "message": "Muted in mixer"
+  },
+  "focus": {
+    "message": "Focus"
+  },
+  "focusEnable": {
+    "message": "Focus on $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "focusDisable": {
+    "message": "Stop focusing on $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "focusEnableHint": {
+    "message": "Focus: keep this stream at its normal level and lower other streams by 18 dB."
+  },
+  "focusDisableHint": {
+    "message": "Stop Focus and restore other streams to their normal levels."
+  },
+  "focusState": {
+    "message": "Focused"
+  },
+  "otherFocus": {
+    "message": "Playing quietly · Focus"
+  },
+  "focusHeading": {
+    "message": "Focus playback"
+  },
+  "resumeBeforeFocus": {
+    "message": "Resume the mix before changing Focus."
   }
 }

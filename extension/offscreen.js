@@ -5,6 +5,7 @@ import { createNoiseNode, destroyNoiseNode } from './audio/noise-reduction.js';
 import { DEFAULT_NOISE_LEVEL, NOISE_LEVELS } from './shared/noise.js';
 
 const streams = new Map();
+const FOCUS_BACKGROUND_GAIN = 10 ** (-18 / 20);
 const notices = [];
 let context;
 let master;
@@ -18,6 +19,7 @@ let bypassed = false;
 let solo;
 let soloTimer;
 let selectedSoloTabId = null;
+let selectedFocusTabId = null;
 
 async function ensureAudio() {
   if (context) return;
@@ -65,6 +67,7 @@ function applySettings() {
 function getState() {
   return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
+    selectedFocusTabId, focusTabId: effectiveFocusTabId(),
     streams: cardOrder.map((id) => streams.get(id)).map((entry) => ({
       id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
       targetPan: entry.targetPan, panPreference: entry.panPreference,
@@ -80,6 +83,7 @@ async function remove(id) {
   streams.delete(id);
   cardOrder = cardOrder.filter((entryId) => entryId !== id);
   if (selectedSoloTabId === id) selectedSoloTabId = null;
+  if (selectedFocusTabId === id) selectedFocusTabId = null;
   if (solo?.tabId === id) endSolo(solo.owner);
   else applyStreamGains();
   panOrder = panOrder.filter((entryId) => entryId !== id);
@@ -164,11 +168,14 @@ function setNoiseReductionLevel(tabId, level) {
 }
 
 function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
+function effectiveFocusTabId() { return bypassed || effectiveSoloTabId() !== null ? null : selectedFocusTabId; }
 
 function audibleGain(entry) {
   if (entry.mixMuted) return 0;
   const selected = effectiveSoloTabId();
-  return selected === null || selected === entry.id ? 1 : 0;
+  if (selected !== null) return selected === entry.id ? 1 : 0;
+  const focused = effectiveFocusTabId();
+  return focused !== null && focused !== entry.id ? FOCUS_BACKGROUND_GAIN : 1;
 }
 
 function applyStreamGains(timeConstant = 0.02) {
@@ -186,6 +193,15 @@ function toggleSolo(tabId) {
   if (bypassed) throw new Error(t('resumeBeforeSolo'));
   if (!streams.has(tabId)) throw new Error(t('tabReleased'));
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
+  selectedFocusTabId = null;
+  applyStreamGains();
+}
+
+function toggleFocus(tabId) {
+  if (bypassed) throw new Error(t('resumeBeforeFocus'));
+  if (!streams.has(tabId)) throw new Error(t('tabReleased'));
+  selectedFocusTabId = selectedFocusTabId === tabId ? null : tabId;
+  selectedSoloTabId = null;
   applyStreamGains();
 }
 
@@ -323,6 +339,7 @@ async function handle(message) {
     case 'BYPASS': await setBypass(message.enabled); break;
     case 'TOGGLE_MUTE': toggleMute(message.tabId); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
+    case 'TOGGLE_FOCUS': toggleFocus(message.tabId); break;
     case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
     case 'TOGGLE_NORMALIZE': toggleNormalization(message.tabId); break;
     case 'NR_LEVEL': setNoiseReductionLevel(message.tabId, message.level); break;

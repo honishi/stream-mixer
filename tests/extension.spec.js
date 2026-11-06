@@ -310,7 +310,7 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
         const cardLayout = await view.locator('.stream-card').evaluateAll((cards) => cards.map((card) => ({
           rect: card.getBoundingClientRect().toJSON(),
           width: card.clientWidth, scrollWidth: card.scrollWidth,
-          controlsRight: card.querySelector('.solo-button').getBoundingClientRect().right,
+          controlsRight: card.querySelector('.focus-button').getBoundingClientRect().right,
           gainLeft: card.querySelector('.gain-reading').getBoundingClientRect().left,
         })));
         expect(cardLayout[0].rect.y).toBe(cardLayout[1].rect.y);
@@ -622,6 +622,110 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     await expect(view.locator('.solo-button[aria-pressed=true]')).toHaveCount(0);
     await view.locator('#stop-all').click();
     await expect(view.locator('.stream-card')).toHaveCount(0);
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
+test('Focus lowers other streams by 18 dB and restores after solo previews, bypass, and popup reopening', async () => {
+  const app = await launch();
+  try {
+    const sources = [];
+    let view;
+    for (let i = 0; i < 2; i++) {
+      sources.push(await source(app, i));
+      view = await popup(app, sources[i]);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(i + 1);
+      await view.locator('.normalize-button').nth(i).click();
+      await expect(view.locator('.normalize-button').nth(i)).toHaveAttribute('aria-pressed', 'false');
+      if (i === 0) await view.close();
+    }
+    await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 0 } }));
+    await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan) < 0.001
+      && Math.abs(stream.correctionDb) < 0.01 && Math.abs(Math.max(...stream.rms) - stream.inputDb) < 1.5)).toBe(true);
+    const initial = (await state(view)).streams;
+    const [firstId, secondId] = initial.map((stream) => stream.id);
+    const baseline = new Map(initial.map((stream) => [stream.id, Math.max(...stream.rms)]));
+    async function expectLevels(focusId, silentIds = []) {
+      await expect.poll(async () => (await state(view)).streams.every((stream) => {
+        const level = Math.max(...stream.rms);
+        if (silentIds.includes(stream.id)) return level < -90;
+        const expected = baseline.get(stream.id) - (focusId !== null && stream.id !== focusId ? 18 : 0);
+        return Math.abs(level - expected) < 0.5;
+      })).toBe(true);
+    }
+    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(0);
+    await view.locator('.focus-button').first().click();
+    await expectLevels(firstId);
+    await expect(view.locator('.stream-state').nth(1)).toHaveText(await localized(view, 'otherFocus'));
+    await view.locator('.focus-button').first().click();
+    await expectLevels(null);
+    await view.locator('.focus-button').nth(1).click();
+    await expectLevels(secondId);
+    await view.locator('.focus-button').first().click();
+    await expectLevels(firstId);
+    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(1);
+    await view.locator('.solo-button').nth(1).click();
+    await expectLevels(null, [firstId]);
+    expect((await state(view)).selectedFocusTabId).toBeNull();
+    await view.locator('.focus-button').first().click();
+    await expectLevels(firstId);
+    expect((await state(view)).selectedSoloTabId).toBeNull();
+
+    // Pan dragging temporarily solos its stream, then returns to Focus.
+    await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 1 } }));
+    await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.01)).toBe(true);
+    await expect(view.locator('.position-dot').nth(1)).toBeEnabled();
+    const dot = await view.locator('.position-dot').nth(1).boundingBox();
+    await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
+    await view.mouse.down();
+    await expect.poll(async () => (await state(view)).soloTabId).toBe(secondId);
+    expect((await state(view)).focusTabId).toBeNull();
+    expect((await state(view)).selectedFocusTabId).toBe(firstId);
+    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(-90);
+    await view.mouse.up();
+    await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 0 } }));
+    await expectLevels(firstId);
+    await view.locator('.mute-button').nth(1).click();
+    await expectLevels(firstId, [secondId]);
+    await view.locator('.mute-button').nth(1).click();
+    await expectLevels(firstId);
+    await view.locator('.mute-button').first().click();
+    await expectLevels(firstId, [firstId]);
+    await view.locator('.mute-button').first().click();
+    await expectLevels(firstId);
+    await view.locator('body').screenshot({ path: 'test-results/popup-focus.png' });
+    await view.locator('#bypass').click();
+    await expectLevels(null);
+    await expect(view.locator('.focus-button').first()).toBeDisabled();
+    await view.close();
+    view = await popup(app, sources[1], false);
+    await expect(view.locator('.focus-button').first()).toHaveAttribute('aria-pressed', 'true');
+    await view.locator('#bypass').click();
+    await expectLevels(firstId);
+    await view.locator('.stream-card').first().focus();
+    await view.keyboard.press('End');
+    await expect.poll(async () => (await state(view)).streams.map((stream) => stream.id)).toEqual([secondId, firstId]);
+    await expect(view.locator('.focus-button').last()).toHaveAttribute('aria-pressed', 'true');
+    await expectLevels(firstId);
+    await view.close();
+    const third = await source(app, 2);
+    view = await popup(app, third);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(3);
+    await view.locator('.normalize-button').last().click();
+    await expect.poll(async () => {
+      const stream = (await state(view)).streams.at(-1);
+      return Math.abs(Math.max(...stream.rms) - stream.inputDb + 18);
+    }).toBeLessThan(1.5);
+    expect((await state(view)).focusTabId).toBe(firstId);
+    await view.locator('.remove-button').nth(1).click();
+    await expect(view.locator('.stream-card')).toHaveCount(2);
+    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(0);
+    expect((await state(view)).selectedFocusTabId).toBeNull();
+    await expect.poll(async () => (await state(view)).streams.every((stream) =>
+      Math.abs(Math.max(...stream.rms) - stream.inputDb) < 1.5)).toBe(true);
     await expect(view.locator('#error')).toBeHidden();
     expect(app.errors).toEqual([]);
   } finally { await app.context.close(); }
@@ -987,7 +1091,7 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-pressed', 'true');
       await expect(view.locator('.nr-button')).toHaveAttribute('aria-label', await localized(view, 'nrDisable', [title]));
       await expect(view.locator('.nr-button')).not.toHaveAttribute('aria-busy');
-      for (const selector of ['.nr-button', '.solo-button', '.normalize-button', '.mute-button', '.remove-button']) {
+      for (const selector of ['.nr-button', '.solo-button', '.focus-button', '.normalize-button', '.mute-button', '.remove-button']) {
         const button = view.locator(selector);
         await expect(button.locator('svg')).toBeVisible();
         await expect(button).toHaveText('');
@@ -1000,6 +1104,11 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('.nr-level')).toHaveAttribute('aria-label', await localized(view, 'nrStrengthLabel', [title]));
       await view.locator('.solo-button').click();
       await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'ソロ再生中' : 'Solo playback');
+      await expect(view.locator('.focus-button')).toHaveAttribute('aria-label', await localized(view, 'focusEnable', [title]));
+      await view.locator('.focus-button').click();
+      await expect(view.locator('.focus-button')).toHaveAttribute('aria-label', await localized(view, 'focusDisable', [title]));
+      await expect(view.locator('.solo-button')).toHaveAttribute('aria-pressed', 'false');
+      await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'focusHeading'));
       await view.locator('.position-dot').focus();
       await view.keyboard.press('End');
       await expect(view.locator('#reset-pans')).toBeVisible();

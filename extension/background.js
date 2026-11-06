@@ -115,6 +115,7 @@ async function handle(message) {
     case 'PAN_PREFERENCE':
     case 'RESET_PANS':
     case 'TOGGLE_SOLO':
+    case 'TOGGLE_FOCUS':
     case 'TOGGLE_MUTE':
     case 'TOGGLE_NR':
     case 'TOGGLE_NORMALIZE':

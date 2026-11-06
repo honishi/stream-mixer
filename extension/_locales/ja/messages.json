@@ -509,5 +509,42 @@
   },
   "mixMutedState": {
     "message": "ミュート中"
+  },
+  "focus": {
+    "message": "Focus"
+  },
+  "focusEnable": {
+    "message": "$title$ にフォーカス",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "focusDisable": {
+    "message": "$title$ のフォーカスを解除",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "focusEnableHint": {
+    "message": "Focus: この放送の音量を保ち、他の放送を18 dB下げて再生します。"
+  },
+  "focusDisableHint": {
+    "message": "Focusを解除し、他の放送を通常の音量に戻します。"
+  },
+  "focusState": {
+    "message": "フォーカス中"
+  },
+  "otherFocus": {
+    "message": "控えめに再生中 · Focus"
+  },
+  "focusHeading": {
+    "message": "フォーカス再生中"
+  },
+  "resumeBeforeFocus": {
+    "message": "Focusを切り替えるには、先にミックスを再開してください。"
   }
 }
