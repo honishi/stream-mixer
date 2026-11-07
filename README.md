@@ -15,14 +15,7 @@ A Chrome extension that balances live-stream audio levels and stereo placement a
 
 ## Installation
 
-Requires Chrome 116+. No build step.
-
-1. Download or clone this repository, or extract a release ZIP.
-2. Open `chrome://extensions` and enable **Developer mode**.
-3. Click **Load unpacked** and select **`extension/`**, or the extracted release folder containing `manifest.json`.
-4. Pin **Stream Mixer** in the extensions menu.
-
-After updates, reload the extension and re-add your tabs.
+- [Chrome Web Store](https://chromewebstore.google.com/detail/gkoocgnchdnibgbgbkobpjpajaldgemc)
 
 ## Usage
 
@@ -70,14 +63,6 @@ npm run release:package -- 0.1.0
 ```
 
 Regenerate bundled RNNoise assets with `npm run vendor:nr`. See [third-party notices](extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md) for sources and licenses.
-
-## Releases
-
-Push a tag such as `0.1.0`, `v0.1.0`, or `0.1.0-rc.1` to validate, test, and publish a GitHub Release. Manual workflow runs validate and test without publishing.
-
-Release ZIPs use `stream-mixer-<version>-<commit>.zip`, e.g. `stream-mixer-0.9.0-85f7cf9.zip`. The version drops the leading `v` but keeps prerelease suffixes; the commit is the checked-out hash's first seven characters.
-
-ZIPs contain Git-tracked `extension/` files and the project `LICENSE`, with `manifest.json` at the root. Packaging sets its numeric `version` and full `version_name` from the tag without changing the source manifest. Extract and load as described above.
 
 ## License
 
