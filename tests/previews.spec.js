@@ -18,24 +18,47 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     await view.locator('#add').click();
     const preview = view.locator('.stream-preview').first();
     await expect.poll(() => previewColor(preview)).toEqual([1, 0, 0]);
+    await expect.poll(() => previewColor(view.locator('.position-preview').first())).toEqual([1, 0, 0]);
     expect(await preview.evaluate((image) => image.naturalWidth)).toBeLessThanOrEqual(240);
     await first.evaluate(() => { window.testVideos[1].color = '#00ff00'; });
     await expect.poll(() => previewColor(preview)).toEqual([0, 1, 0]);
+    await expect.poll(() => previewColor(view.locator('.position-preview').first())).toEqual([0, 1, 0]);
     await view.close();
 
     const second = await source(app, 1);
     view = await popup(app, second);
     await view.locator('#add').click();
     await expect(view.locator('.stream-preview').nth(1)).toBeHidden();
+    await expect(view.locator('.position-preview').nth(1)).toBeHidden();
     const heightWithoutPreview = await view.locator('.stream-card').nth(1).evaluate((card) => card.getBoundingClientRect().height);
     await addTestVideo(second, { color: '#0000ff' });
     await expect.poll(() => previewColor(view.locator('.stream-preview').nth(1))).toEqual([0, 0, 1]);
+    await expect.poll(() => previewColor(view.locator('.position-preview').nth(1))).toEqual([0, 0, 1]);
     const heightWithPreview = await view.locator('.stream-card').nth(1).evaluate((card) => card.getBoundingClientRect().height);
     expect(heightWithPreview).toBe(heightWithoutPreview);
     const previewSize = await view.locator('.stream-preview').nth(1).boundingBox();
     expect(previewSize.width).toBeLessThanOrEqual(54);
     expect(previewSize.height).toBeLessThanOrEqual(30);
     await expect.poll(() => previewColor(view.locator('.stream-preview').first())).toEqual([0, 1, 0]);
+    // Images remain below the markers and inside the field, even at either pan limit.
+    const marker = view.locator('.position-dot').first();
+    for (const key of ['Home', 'End']) {
+      await marker.press(key);
+      await expect.poll(async () => (await state(view)).streams[0].targetPan).toBe(key === 'Home' ? -1 : 1);
+      const field = await view.locator('.stereo-field').boundingBox();
+      const labels = await view.locator('.field-labels').boundingBox();
+      for (let index = 0; index < 2; index++) {
+        const dot = await view.locator('.position-dot').nth(index).boundingBox();
+        const thumbnail = await view.locator('.position-preview').nth(index).boundingBox();
+        expect(thumbnail.x).toBeGreaterThanOrEqual(field.x);
+        expect(thumbnail.x + thumbnail.width).toBeLessThanOrEqual(field.x + field.width);
+        expect(thumbnail.y).toBeGreaterThan(dot.y + dot.height);
+        expect(thumbnail.y + thumbnail.height).toBeLessThan(labels.y);
+        expect(thumbnail.x + thumbnail.width / 2).toBeCloseTo(dot.x + dot.width / 2, 0);
+        await expect(view.locator('.position-preview').nth(index)).toHaveAttribute('src', await view.locator('.stream-preview').nth(index).getAttribute('src'));
+      }
+    }
+    await view.locator('#reset-pans').click();
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.max(...stream.rms) > -55)).toBe(true);
     expect(await view.evaluate(() => document.body.scrollWidth)).toBe(680);
     await view.locator('body').screenshot({ path: 'test-results/popup-video.png' });
@@ -49,6 +72,8 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     });
     await expect(view.locator('.stream-preview').first()).toBeHidden();
     await expect(view.locator('.stream-preview').first()).not.toHaveAttribute('src');
+    await expect(view.locator('.position-preview').first()).toBeHidden();
+    await expect(view.locator('.position-preview').first()).not.toHaveAttribute('src');
     await expect(view.locator('#error')).toBeHidden();
 
     // No background capture loop: once the popup closes, injection stops.
@@ -70,6 +95,7 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     await expect.poll(() => previewColor(view.locator('.stream-preview').nth(1))).toEqual([0, 0, 1]);
     await view.locator('.remove-button').nth(1).click();
     await expect(view.locator('.stream-card')).toHaveCount(1);
+    await expect(view.locator('.position-preview')).toHaveCount(1);
     const snapshots = await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'VIDEO_SNAPSHOTS' }));
     expect(snapshots.data).toEqual([{ id: (await state(view)).streams[0].id, image: null }]);
     expect(app.errors).toEqual([]);

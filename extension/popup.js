@@ -239,6 +239,14 @@ function createStreamCard(id) {
   $('streams').append(card);
   const dot = document.createElement('button');
   dot.className = 'position-dot';
+  const number = document.createElement('span');
+  number.className = 'position-number';
+  const preview = document.createElement('img');
+  preview.className = 'position-preview';
+  preview.alt = '';
+  preview.draggable = false;
+  preview.hidden = true;
+  dot.append(number, preview);
   attachPanControl(dot, id);
   dots.set(id, dot);
   $('positions').append(dot);
@@ -325,7 +333,7 @@ function renderPositionDot(stream, index) {
   dot.style.setProperty('--activity', activity.toFixed(3));
   dot.classList.toggle('sound-active', activity > 0);
   dot.classList.toggle('solo-muted', soloMuted || stream.mixMuted);
-  dot.textContent = index + 1;
+  dot.querySelector('.position-number').textContent = index + 1;
   dot.title = t('panHint', [stream.title, panText(visualPan)]);
   dot.disabled = busy || bypassed || !panWidth();
   dot.ariaLabel = t('panLabel', [index + 1, stream.title]);
@@ -485,6 +493,18 @@ async function refresh() {
   finally { polling = false; }
 }
 
+/** @returns {void} */
+function updateStreamPreviews(id, card, image) {
+  // Ignore captures from a card that was removed or replaced while awaiting a snapshot.
+  if (!card || cards.get(id) !== card) return;
+  for (const preview of [card.querySelector('.stream-preview'), dots.get(id).querySelector('.position-preview')]) {
+    preview.hidden = !image;
+    if (image) {
+      if (preview.getAttribute('src') !== image) preview.src = image;
+    } else preview.removeAttribute('src');
+  }
+}
+
 async function refreshPreviews() {
   if (previewPolling || !cards.size) return;
   previewPolling = true;
@@ -492,21 +512,11 @@ async function refreshPreviews() {
   try {
     const snapshots = await request('VIDEO_SNAPSHOTS');
     for (const { id, image } of snapshots) {
-      const card = requestedCards.get(id);
-      if (!card || cards.get(id) !== card) continue;
-      const preview = card.querySelector('.stream-preview');
-      preview.hidden = !image;
-      if (image) {
-        if (preview.getAttribute('src') !== image) preview.src = image;
-      } else preview.removeAttribute('src');
+      updateStreamPreviews(id, requestedCards.get(id), image);
     }
   } catch {
     // Thumbnails are optional; failures must not interrupt audio controls.
-    for (const card of requestedCards.values()) {
-      const preview = card.querySelector('.stream-preview');
-      preview.hidden = true;
-      preview.removeAttribute('src');
-    }
+    for (const [id, card] of requestedCards) updateStreamPreviews(id, card, null);
   } finally { previewPolling = false; }
 }
 

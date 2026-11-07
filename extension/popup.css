@@ -15,7 +15,7 @@ h1 { font-size: 19px; font-weight: 620; letter-spacing: -.7px; margin: 0; }
 main { padding: 16px 24px 12px; max-height: 504px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #49523e transparent; }
 .section-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; letter-spacing: 1.6px; }
 .section-label span:last-child { color: var(--accent); letter-spacing: 1px; }
-.stereo-field { position: relative; height: 86px; overflow: hidden; margin-top: 6px; }
+.stereo-field { position: relative; height: 124px; overflow: hidden; margin-top: 6px; }
 .field-guide { position: absolute; border: 1px solid #323b2b; border-radius: 50%; left: 50%; transform: translateX(-50%); }
 .guide-one { width: 90%; height: 100px; top: 5px; }.guide-two { width: 62%; height: 64px; top: 24px; }
 .field-center { position: absolute; top: 10px; bottom: 28px; left: 50%; border-left: 1px dashed #424b37; }
@@ -24,6 +24,8 @@ main { padding: 16px 24px 12px; max-height: 504px; overflow-y: auto; scrollbar-w
 #field-empty { position: absolute; width: 100%; top: 30px; margin: 0; text-align: center; color: #9ea98e; font-size: 11px; background: linear-gradient(90deg, transparent, var(--bg), transparent); }
 .position-dot { position: absolute; top: 28px; width: 27px; height: 27px; border-radius: 50%; border: 1px solid var(--stream-color); background: var(--bg); color: var(--stream-color); display: grid; place-items: center; font-size: 10px; font-weight: 650; transform: translateX(-50%); transition: left .15s linear; box-shadow: 0 0 20px color-mix(in srgb, var(--stream-color) 12%, transparent); }
 .position-dot:nth-child(even) { top: 43px; }
+.position-preview { position: absolute; top: 49px; left: 50%; transform: translateX(-50%); width: 48px; height: 27px; object-fit: contain; border: 1px solid color-mix(in srgb, var(--stream-color) 45%, var(--line)); border-radius: 5px; background: #10130f; pointer-events: none; }
+.position-dot:nth-child(even) .position-preview { top: 34px; }
 .position-dot { padding: 0; cursor: grab; touch-action: none; user-select: none; }
 .position-dot.dragging { cursor: grabbing; transition: none; z-index: 2; background: var(--stream-color); color: var(--bg); }
 .position-dot::after { content: ''; position: absolute; inset: -5px; border: 1px solid var(--stream-color); border-radius: 50%; pointer-events: none; opacity: var(--activity, 0); transform: scale(calc(1 + var(--activity, 0) * .22)); box-shadow: 0 0 12px color-mix(in srgb, var(--stream-color) 45%, transparent); transition: opacity .16s linear, transform .16s linear; }
