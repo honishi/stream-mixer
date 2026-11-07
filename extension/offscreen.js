@@ -200,7 +200,7 @@ function applyStreamGains(timeConstant = 0.02) {
 function setVolumeTrim(tabId, trimDb) {
   const entry = requireStream(tabId);
   if (bypassed) throw new Error('Resume the mix before adjusting stream volume.');
-  if (![0, -3, -6, -9].includes(trimDb)) throw new Error('Invalid stream volume adjustment.');
+  if (![0, -3, -6, -9, -12, -15].includes(trimDb)) throw new Error('Invalid stream volume adjustment.');
   entry.trimDb = trimDb;
   applyStreamGains();
 }

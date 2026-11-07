@@ -35,18 +35,18 @@ test('all trim levels attenuate only their stream after normalization and NR', a
     const initial = (await state(view)).streams;
     const [firstId, secondId] = initial.map((stream) => stream.id);
     expect(initial.map((stream) => stream.trimDb)).toEqual([0, 0]);
-    await expect(view.locator('.trim-level').first().locator('option')).toHaveText(['Normal', '−3 dB', '−6 dB', '−9 dB']);
+    await expect(view.locator('.trim-level').first().locator('option')).toHaveText(['Normal', '−3 dB', '−6 dB', '−9 dB', '−12 dB', '−15 dB']);
     await expectLevels(view, new Map());
     const inputBefore = (await state(view)).streams[0].inputDb;
-    for (const trimDb of [-3, -6, -9, 0]) {
+    for (const trimDb of [-3, -6, -9, -12, -15, 0]) {
       await view.locator('.trim-level').first().selectOption(String(trimDb));
       await expect.poll(async () => (await state(view)).streams.map((stream) => stream.trimDb)).toEqual([trimDb, 0]);
       await expectLevels(view, new Map([[firstId, trimDb]]));
       expect(Math.abs((await state(view)).streams[0].inputDb - inputBefore)).toBeLessThan(0.2);
     }
-    await view.locator('.trim-level').first().selectOption('-9');
+    await view.locator('.trim-level').first().selectOption('-15');
     await view.locator('.trim-level').last().selectOption('-3');
-    const offsets = new Map([[firstId, -9], [secondId, -3]]);
+    const offsets = new Map([[firstId, -15], [secondId, -3]]);
     await expectLevels(view, offsets);
     await view.locator('.nr-level').first().selectOption('low');
     await view.locator('.nr-button').first().click();
@@ -127,7 +127,7 @@ test('trim survives mix controls, drag, reorder and reopening, and resets when a
     await expect(view.locator('.trim-level').last()).toHaveValue('-6');
     await expectLevels(view, new Map([[firstId, -6], [secondId, -21]]));
 
-    for (const trimDb of [-12, 3, -1, '-3', null]) {
+    for (const trimDb of [-18, 3, -1, '-3', null]) {
       expect(await command(view, 'VOLUME_TRIM', { tabId: firstId, trimDb })).toEqual({ ok: false, error: 'Invalid stream volume adjustment.' });
     }
     expect(await command(view, 'VOLUME_TRIM', { tabId: -1, trimDb: -3 })).toEqual({ ok: false, error: 'This tab has already been released.' });

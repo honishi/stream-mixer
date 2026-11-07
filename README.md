@@ -70,7 +70,7 @@ Setting Normalize to 0% gradually returns automatic correction to 0 dB while kee
 
 ### Per-stream volume adjustment
 
-If a stream still sounds too loud after Normalize and NR, use the small selector beside its mute button. Choose **Normal**, **−3 dB**, **−6 dB**, or **−9 dB**. Normal is the default and adds no attenuation. Each stream can have its own setting.
+If a stream still sounds too loud after Normalize and NR, use the small selector beside its mute button. Choose **Normal**, **−3 dB**, **−6 dB**, **−9 dB**, **−12 dB**, or **−15 dB**. Normal is the default and adds no attenuation. Each stream can have its own setting.
 
 This adjustment is applied after Normalize and NR, so automatic correction does not cancel it. It works with Normalize off as well. Solo and drag previews retain the adjustment; Focus adds its 18 dB attenuation to the other streams' selected adjustments. Mute always takes priority. The displayed Normalize correction remains separate, while OUTPUT meters include the manual adjustment.
 
