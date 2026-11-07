@@ -47,6 +47,8 @@ Global mix settings are saved locally. After restarting Chrome, add your tabs ag
 
 Audio and thumbnails are processed locally, without recording audio or sending media to a server. Each tab must be added manually; protected content and site restrictions may prevent capture.
 
+See the [Privacy Policy](PRIVACY.md) for data use, storage, retention, and user controls.
+
 ## Development
 
 Requires Node.js 22 or later. Load the `extension` folder directly in Chrome.
