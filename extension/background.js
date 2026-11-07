@@ -36,7 +36,9 @@ async function getSettings() {
 }
 
 async function updateBadge(count) {
-  await chrome.action.setBadgeBackgroundColor({ color: '#4ade80' });
+  // Match the light theme's --accent and --on-accent colors.
+  await chrome.action.setBadgeBackgroundColor({ color: '#15803d' });
+  await chrome.action.setBadgeTextColor({ color: '#ffffff' });
   await chrome.action.setBadgeText({ text: count ? String(count) : '' });
 }
 
