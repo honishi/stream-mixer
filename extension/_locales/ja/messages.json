@@ -490,5 +490,11 @@
   },
   "trimBypassed": {
     "message": "バイパス中は音量調整を一時停止しています。ミックスを再開すると再び適用されます。"
+  },
+  "listeningControls": {
+    "message": "聴き方・音量"
+  },
+  "processingControls": {
+    "message": "自動処理"
   }
 }

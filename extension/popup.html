@@ -61,10 +61,20 @@
       <div class="stream-heading">
         <div class="stream-visual"><img class="stream-preview" alt="" draggable="false" hidden><span class="stream-number"></span></div>
         <div class="stream-name"><h3></h3><span class="stream-state"></span></div>
-        <button class="mute-button" type="button" aria-pressed="false" aria-label="Mute" data-i18n-aria-label="mute"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m11 5-5 4H3v6h3l5 4z"/><path class="mute-waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="mute-cross" d="m16 9 6 6m0-6-6 6"/></svg></button>
         <button class="remove-button" type="button" title="Release tab" data-i18n-title="remove"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
-      <div class="stream-actions">
+      <div class="stream-actions listening-controls" role="group" aria-label="Listening and volume" data-i18n-aria-label="listeningControls">
+        <button class="solo-button" type="button" aria-pressed="false" aria-label="Solo" data-i18n-aria-label="solo"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="5" height="8" rx="2"/><rect x="16" y="12" width="5" height="8" rx="2"/></svg></button>
+        <button class="focus-button" type="button" aria-pressed="false" aria-label="Focus" data-i18n-aria-label="focus"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3H3v5m13-5h5v5m0 8v5h-5m-8 0H3v-5"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="mute-button" type="button" aria-pressed="false" aria-label="Mute" data-i18n-aria-label="mute"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m11 5-5 4H3v6h3l5 4z"/><path class="mute-waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="mute-cross" d="m16 9 6 6m0-6-6 6"/></svg></button>
+        <select class="trim-level" aria-label="Stream volume" data-i18n-aria-label="trim">
+          <option value="0" data-i18n="trimNormal">Normal</option>
+          <option value="-3">−3 dB</option>
+          <option value="-6">−6 dB</option>
+          <option value="-9">−9 dB</option>
+        </select>
+      </div>
+      <div class="stream-actions processing-controls" role="group" aria-label="Automatic processing" data-i18n-aria-label="processingControls">
         <div class="nr-controls">
           <button class="nr-button" type="button" aria-pressed="false" aria-label="NR" data-i18n-aria-label="nr"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12h2l1-3 2 6 1-3h2"/></svg></button>
           <select class="nr-level" aria-label="Noise reduction strength" data-i18n-aria-label="nrStrength">
@@ -73,8 +83,6 @@
             <option value="high" data-i18n="nrHigh">High</option>
           </select>
         </div>
-        <button class="solo-button" type="button" aria-pressed="false" aria-label="Solo" data-i18n-aria-label="solo"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="5" height="8" rx="2"/><rect x="16" y="12" width="5" height="8" rx="2"/></svg></button>
-        <button class="focus-button" type="button" aria-pressed="false" aria-label="Focus" data-i18n-aria-label="focus"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3H3v5m13-5h5v5m0 8v5h-5m-8 0H3v-5"/><circle cx="12" cy="12" r="3"/></svg></button>
         <div class="gain-reading"><button class="normalize-button" type="button" aria-pressed="true" aria-label="Normalize" data-i18n-aria-label="normalizeMeter"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h16M12 2v6M9 5l3 3 3-3M12 22v-6m-3 3 3-3 3 3"/></svg></button><strong class="correction"></strong></div>
       </div>
       <div class="stream-readings">
@@ -86,12 +94,6 @@
             </div>
           </div>
         </div>
-        <select class="trim-level" aria-label="Stream volume" data-i18n-aria-label="trim">
-          <option value="0" data-i18n="trimNormal">Normal</option>
-          <option value="-3">−3 dB</option>
-          <option value="-6">−6 dB</option>
-          <option value="-9">−9 dB</option>
-        </select>
         <div class="pan-reading"><div class="reading-label"><span data-i18n="pan">PAN</span><span class="pan-value"></span></div><div class="pan-track"><i></i></div></div>
       </div>
     </article>

@@ -115,8 +115,9 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
         const cardLayout = await view.locator('.stream-card').evaluateAll((cards) => cards.map((card) => ({
           rect: card.getBoundingClientRect().toJSON(),
           width: card.clientWidth, scrollWidth: card.scrollWidth,
-          controlsRight: card.querySelector('.focus-button').getBoundingClientRect().right,
-          gainLeft: card.querySelector('.gain-reading').getBoundingClientRect().left,
+          listening: card.querySelector('.listening-controls').getBoundingClientRect().toJSON(),
+          processing: card.querySelector('.processing-controls').getBoundingClientRect().toJSON(),
+          readings: card.querySelector('.stream-readings').getBoundingClientRect().toJSON(),
         })));
         expect(cardLayout[0].rect.y).toBe(cardLayout[1].rect.y);
         expect(cardLayout[1].rect.x).toBeGreaterThan(cardLayout[0].rect.right);
@@ -124,9 +125,10 @@ test('six captured tabs, live meters, silence, popup/worker lifetime, removal an
         expect(cardLayout[2].rect.y).toBeGreaterThan(cardLayout[0].rect.bottom);
         for (const card of cardLayout) {
           expect(card.rect.width).toBeLessThan(320);
-          expect(card.rect.height).toBeLessThanOrEqual(112);
+          expect(card.rect.height).toBeLessThanOrEqual(144);
           expect(card.scrollWidth).toBe(card.width);
-          expect(card.controlsRight).toBeLessThan(card.gainLeft);
+          expect(card.listening.bottom).toBeLessThan(card.processing.top);
+          expect(card.processing.bottom).toBeLessThan(card.readings.top);
         }
         await view.screenshot({ path: 'test-results/popup-full.png', fullPage: true });
       }

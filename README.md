@@ -37,6 +37,8 @@ Other audible tabs are listed in the popup. Clicking one switches to that tab; o
 
 The popup is 680 px wide and displays stream cards in two columns.
 
+The first control row groups Solo, Focus, mute, and per-stream volume adjustment. The second row groups NR with its strength selector and Normalize with its correction value. OUTPUT and PAN readings sit below both rows, and release stays at the top right.
+
 Card controls use icons: headphones for Solo, a target for Focus, a shield and waveform for NR, arrows pointing toward a center line for Normalize, a speaker for mute, and × for release. Hover over a button for its description. Enabled controls use the tab's color, while mute uses a red tint. Accessibility labels support English and Japanese. A spinner appears while NR is loading.
 
 Drag a card's title, number, or empty space to reorder it. The left half of a destination card indicates insertion before it; the right half indicates insertion after it. Dropping renumbers both the cards and STEREO FIELD markers from the beginning. Press Esc to cancel. With a card focused, use Left/Right to move one position, Up/Down to move two, or Home/End to move to the first/last position.
@@ -68,7 +70,7 @@ Setting Normalize to 0% gradually returns automatic correction to 0 dB while kee
 
 ### Per-stream volume adjustment
 
-If a stream still sounds too loud after Normalize and NR, use the small selector beside its OUTPUT meters. Choose **Normal**, **−3 dB**, **−6 dB**, or **−9 dB**. Normal is the default and adds no attenuation. Each stream can have its own setting.
+If a stream still sounds too loud after Normalize and NR, use the small selector beside its mute button. Choose **Normal**, **−3 dB**, **−6 dB**, or **−9 dB**. Normal is the default and adds no attenuation. Each stream can have its own setting.
 
 This adjustment is applied after Normalize and NR, so automatic correction does not cancel it. It works with Normalize off as well. Solo and drag previews retain the adjustment; Focus adds its 18 dB attenuation to the other streams' selected adjustments. Mute always takes priority. The displayed Normalize correction remains separate, while OUTPUT meters include the manual adjustment.
 

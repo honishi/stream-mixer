@@ -61,7 +61,7 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 .solo-button[aria-pressed=true], .focus-button[aria-pressed=true], .nr-button[aria-pressed=true], .normalize-button[aria-pressed=true] { border-color: var(--stream-color); background: var(--stream-color); color: var(--bg); }
 .nr-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .nr-level { width: 61px; padding: 4px 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--text); font-size: 10px; cursor: pointer; }
-.trim-level { width: 100%; min-width: 0; height: 22px; padding: 0 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--muted); font-size: 9px; cursor: pointer; }
+.trim-level { width: 62px; min-width: 0; height: 24px; padding: 0 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--muted); font-size: 10px; cursor: pointer; }
 .trim-level[data-reduced=true] { color: var(--stream-color); border-color: var(--stream-color); }
 .trim-level:disabled, .nr-level:disabled { opacity: .4; cursor: default; }
 .stream-visual { position: relative; flex-shrink: 0; }
@@ -74,7 +74,7 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 .stream-card.drop-before { box-shadow: inset 3px 0 var(--accent); }
 .stream-card.drop-after { box-shadow: inset -3px 0 var(--accent); }
 .remove-button { display: grid; place-items: center; flex-shrink: 0; width: 24px; height: 26px; border: none; background: none; color: #97a089; padding: 0; }.remove-button:hover { color: var(--text); }
-.stream-readings { display: grid; grid-template-columns: minmax(0, 1fr) 62px 78px; gap: 8px; margin-top: 6px; }.reading-label { color: var(--muted); font-size: 8px; letter-spacing: .8px; margin-bottom: 8px; }.level-value { float: right; font-size: 8px; letter-spacing: 0; color: #c3cbb7; font-variant-numeric: tabular-nums; }
+.stream-readings { display: grid; grid-template-columns: minmax(0, 1fr) 78px; gap: 12px; margin-top: 8px; }.reading-label { color: var(--muted); font-size: 8px; letter-spacing: .8px; margin-bottom: 8px; }.level-value { float: right; font-size: 8px; letter-spacing: 0; color: #c3cbb7; font-variant-numeric: tabular-nums; }
 .meter-row { display: flex; align-items: center; gap: 5px; margin: 6px 0; }.meter-row > span { font-size: 7px; color: #89947a; }.meter-track { position: relative; background: #30382a; height: 5px; border-radius: 1px; overflow: hidden; flex: 1; }.meter-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--stream-color), var(--stream-color) 80%, #f2cc82); transition: width .12s linear; }.peak-tick { position: absolute; top: 0; width: 1px; height: 100%; background: #f4f5e8; opacity: .75; }
 .pan-reading { border-left: 1px solid var(--line); padding-left: 8px; }.correction { color: #c3cbb7; font-size: 10px; font-weight: 400; line-height: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }.limiter-label { display: block; flex: 1; min-width: 0; height: 9px; line-height: 9px; color: #e3bd7a; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.pan-track { position: relative; height: 3px; background: #47503e; margin: 3px 1px 0; }.pan-track::after { content: ''; position: absolute; height: 7px; width: 1px; background: #768369; top: -2px; left: 50%; }.pan-track i { position: absolute; width: 7px; height: 7px; border-radius: 50%; top: -2px; background: var(--stream-color); transform: translateX(-50%); z-index: 1; }.pan-value { display: block; font-size: 9px; color: var(--stream-color); font-variant-numeric: tabular-nums; }
 .empty-state { text-align: center; padding: 8px 0 23px; }.empty-symbol { font-size: 32px; color: #80966a; }.empty-state p { font-size: 12px; margin: 5px 0 8px; }.empty-state > span:last-child { color: var(--muted); line-height: 1.9; font-size: 11px; }
@@ -84,7 +84,8 @@ h2 { font-size: 12px; font-weight: 550; margin: 0; }.text-button { font-size: 10
 #add-icon { font-size: 15px; line-height: 15px; }
 #add-help { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stream-output { min-width: 0; }
-.stream-actions { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.stream-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.processing-controls { gap: 12px; margin-top: 6px; }
 .meter-group .reading-label, .pan-reading .reading-label { line-height: 10px; margin-bottom: 3px; }
 .meter-channels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .meter-channels .meter-row { margin: 0; height: 9px; }

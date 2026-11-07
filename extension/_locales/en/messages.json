@@ -490,5 +490,11 @@
   },
   "trimBypassed": {
     "message": "Volume adjustment is paused during bypass. Resume the mix to apply it again."
+  },
+  "listeningControls": {
+    "message": "Listening and volume"
+  },
+  "processingControls": {
+    "message": "Automatic processing"
   }
 }
