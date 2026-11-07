@@ -37,6 +37,8 @@ Other audible tabs are listed in the popup. Clicking one switches to that tab; o
 
 The popup is 680 px wide and displays stream cards in two columns.
 
+Light and dark themes follow the system appearance automatically, including changes while the popup is open. Stream colors, controls, meters, and notices adapt to each theme. There is no separate theme setting.
+
 The first control row groups Solo, Focus, mute, and per-stream volume adjustment. The second row groups NR with its strength selector and Normalize with its correction value. OUTPUT and PAN readings sit below both rows, and release stays at the top right.
 
 Card controls use icons: headphones for Solo, a target for Focus, a shield and waveform for NR, arrows pointing toward a center line for Normalize, a speaker for mute, and × for release. Hover over a button for its description. Enabled controls use the tab's color, while mute uses a red tint. Accessibility labels support English and Japanese. A spinner appears while NR is loading.

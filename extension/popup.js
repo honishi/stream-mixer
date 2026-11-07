@@ -5,7 +5,7 @@ import { clamp, panPositions } from './shared/settings.js';
 function $(id) {
   return document.getElementById(id);
 }
-const colors = ['#c1ed8b', '#9acbe9', '#dfb1dc', '#efca83', '#9ce0cb', '#edab99'];
+const colors = ['var(--stream-1)', 'var(--stream-2)', 'var(--stream-3)', 'var(--stream-4)', 'var(--stream-5)', 'var(--stream-6)'];
 const cards = new Map();
 const dots = new Map();
 const pendingPans = new Map();

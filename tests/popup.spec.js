@@ -1,7 +1,69 @@
-import { test, expect, extensionPath, launch, source, popup, localized, expectStablePeakLayout } from './helpers/browser.js';
+import { test, expect, extensionPath, launch, source, popup, localized, state, addTestVideo, expectStablePeakLayout } from './helpers/browser.js';
 import { readFile, writeFile, mkdtemp, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+test('system theme changes update the open popup without changing the mix or layout', async () => {
+  const app = await launch();
+  try {
+    let view;
+    for (let index = 0; index < 6; index++) {
+      const audio = await source(app, index);
+      if (index === 0) await addTestVideo(audio, { color: '#426b22' });
+      view = await popup(app, audio);
+      await view.locator('#add').click();
+      await expect(view.locator('.stream-card')).toHaveCount(index + 1);
+      if (index < 5) await view.close();
+    }
+    await view.locator('.trim-level').first().selectOption('-15');
+    await view.locator('.focus-button').first().click();
+    await view.locator('.nr-button').first().click();
+    await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+    const before = await state(view);
+    const card = view.locator('.stream-card').first();
+    const size = await card.evaluate((element) => [element.offsetWidth, element.offsetHeight]);
+
+    for (const colorScheme of ['dark', 'light', 'dark']) {
+      await view.emulateMedia({ colorScheme });
+      await expect(view.locator('html')).toHaveCSS('color-scheme', colorScheme);
+      await expect(view.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(20, 23, 20)' : 'rgb(245, 247, 241)');
+      // Check actual rendered foreground/background pairs, including all six stream colors.
+      const contrasts = await view.evaluate(() => {
+        const context = document.createElement('canvas').getContext('2d');
+        const luminance = (color) => {
+          context.fillStyle = color;
+          context.fillRect(0, 0, 1, 1);
+          const channels = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map((value) => {
+            const channel = value / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+        };
+        const selectors = ['body', '#add-help', '.position-dot', '.normalize-button', '.trim-level', '#notice', '#error'];
+        return selectors.flatMap((selector) => [...document.querySelectorAll(selector)].map((element) => {
+          const style = getComputedStyle(element);
+          const background = element.id === 'add-help' ? getComputedStyle(document.body).backgroundColor : style.backgroundColor;
+          const foregroundLuminance = luminance(style.color);
+          const backgroundLuminance = luminance(background);
+          return { selector, ratio: (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05) };
+        }));
+      });
+      for (const { selector, ratio } of contrasts) expect(ratio, `${colorScheme}: ${selector}`).toBeGreaterThanOrEqual(4.5);
+      expect(await card.evaluate((element) => [element.offsetWidth, element.offsetHeight])).toEqual(size);
+      await expect(view.locator('.trim-level').first()).toHaveValue('-15');
+      await expect(view.locator('.focus-button').first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(view.locator('.nr-button').first()).toHaveAttribute('aria-pressed', 'true');
+      const after = await state(view);
+      expect(after.streams.map((stream) => stream.id)).toEqual(before.streams.map((stream) => stream.id));
+      expect(after.settings).toEqual(before.settings);
+      expect(after.selectedFocusTabIds).toEqual(before.selectedFocusTabIds);
+      expect(after.audioState).toBe('running');
+      await view.locator('main').evaluate((element) => { element.scrollTop = 0; });
+      await view.locator('body').screenshot({ path: `test-results/popup-theme-${colorScheme}.png` });
+    }
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
 
 test('polling errors clear after recovery without hiding action errors', async () => {
   const app = await launch();
