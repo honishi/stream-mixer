@@ -3,7 +3,7 @@
     "message": "en"
   },
   "extensionName": {
-    "message": "stream-mixer"
+    "message": "Stream Mixer"
   },
   "extensionDescription": {
     "message": "Balance and pan audio from multiple tabs, with optional noise reduction and solo controls."

@@ -3,7 +3,7 @@
     "message": "ja"
   },
   "extensionName": {
-    "message": "stream-mixer"
+    "message": "Stream Mixer"
   },
   "extensionDescription": {
     "message": "複数の放送の音量を穏やかにそろえ、左右に配置するタブ音声ミキサー。"
