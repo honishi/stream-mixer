@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const [tag, outputDirectory = join(root, 'dist')] = process.argv.slice(2);
-const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(tag ?? '');
+const match = /^v?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(tag ?? '');
 if (!match || match[2]?.split('.').some((part) => /^0\d+$/.test(part))) {
-  throw new Error('Use a version tag such as v1.2.3 or v1.2.3-rc.1.');
+  throw new Error('Use a version tag such as 1.2.3 or 1.2.3-rc.1, optionally prefixed with v.');
 }
 const version = match[1];
 const components = version.split('.').map(Number);
@@ -35,7 +35,7 @@ try {
   const manifestPath = join(staging, 'manifest.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   manifest.version = version;
-  manifest.version_name = tag.slice(1);
+  manifest.version_name = tag.replace(/^v/, '');
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const output = resolve(outputDirectory);

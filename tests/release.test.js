@@ -18,7 +18,13 @@ test('release archives contain runtime assets, stamped versions, and valid check
     cwd: root, encoding: 'utf8',
   }).split('\0').filter(Boolean).map((path) => path.slice('extension/'.length)).sort();
 
-  for (const tag of ['v1.2.3', 'v1.2.3-rc.1']) {
+  for (const [tag, version, versionName] of [
+    ['v1.2.3', '1.2.3', '1.2.3'],
+    ['1.2.3', '1.2.3', '1.2.3'],
+    ['v1.2.3-rc.1', '1.2.3', '1.2.3-rc.1'],
+    ['1.2.3-rc.1', '1.2.3', '1.2.3-rc.1'],
+    ['0.0.1', '0.0.1', '0.0.1'],
+  ]) {
     execFileSync(process.execPath, [script, tag, output]);
     const filename = `stream-mixer-${tag}.zip`;
     const archive = join(output, filename);
@@ -26,8 +32,8 @@ test('release archives contain runtime assets, stamped versions, and valid check
     assert.deepEqual(entries.sort(), tracked);
     const extract = (file) => execFileSync('unzip', ['-p', archive, file]);
     const manifest = JSON.parse(extract('manifest.json'));
-    assert.equal(manifest.version, '1.2.3');
-    assert.equal(manifest.version_name, tag.slice(1));
+    assert.equal(manifest.version, version);
+    assert.equal(manifest.version_name, versionName);
     for (const file of tracked.filter((file) => file !== 'manifest.json')) {
       assert.deepEqual(extract(file), await readFile(join(root, 'extension', file)), file);
     }
@@ -40,8 +46,10 @@ test('release archives contain runtime assets, stamped versions, and valid check
 test('invalid or Chrome-incompatible release tags do not produce archives', async (t) => {
   const output = await mkdtemp(join(tmpdir(), 'stream-mixer-invalid-tag-'));
   t.after(() => rm(output, { recursive: true, force: true }));
-  for (const tag of ['', '1.2.3', 'v1.2', 'v01.2.3', 'v0.0.0', 'v65536.0.0',
-    'v1.2.3-rc.01', 'v1.2.3-', 'v1.2.3+build.1', 'v1.2.3/../../file']) {
+  const invalidVersions = ['', '1.2', '01.2.3', '0.0.0', '65536.0.0',
+    '1.2.3-rc.01', '1.2.3-', '1.2.3+build.1', '1.2.3/../../file'];
+  const invalidTags = invalidVersions.flatMap((version) => [version, `v${version}`]);
+  for (const tag of [...invalidTags, 'vv1.2.3']) {
     const result = spawnSync(process.execPath, [script, tag, output], { encoding: 'utf8' });
     assert.equal(result.status, 1, tag);
     assert.match(result.stderr, /Use a version tag|Chrome version components/);
