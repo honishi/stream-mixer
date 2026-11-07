@@ -1,57 +1,56 @@
-# stream-mixer
+# Stream Mixer
 
-<img src="./extension/icons/icon-128.png" alt="icon">
+<img src="./extension/icons/icon-128.png" alt="Stream Mixer icon">
 
-A Chrome extension that balances audio levels across live streams and spreads them across the stereo field.
+A Chrome extension that balances live-stream audio levels and stereo placement across tabs.
 
 ## Features
 
-- Automatically balances volume and stereo placement across multiple tabs.
-- Lets you adjust overall volume, normalization strength, and stereo width.
-- Supports per-stream normalization, volume adjustment, mute, and noise reduction.
-- Offers Solo for listening to one stream and Focus for lowering the others.
-- Lets you drag stereo markers to adjust placement and reorder stream cards.
-- Shows audio meters and video thumbnails when available.
-- Keeps audio processing running when the popup is closed.
-- Supports English and Japanese, with light and dark themes that follow the system.
+- Automatic volume balancing and stereo placement.
+- Global volume, normalization strength, and stereo width controls.
+- Per-stream normalization, volume, mute, and noise reduction.
+- Solo to hear one stream; Focus to keep selected streams at normal levels and lower others by 18 dB.
+- Draggable stereo markers and reorderable stream cards, with audio meters and available video thumbnails.
+- English and Japanese, with system-matched light and dark themes.
 
 ## Installation
 
-Requires Chrome 116 or later. No build step is needed.
+Requires Chrome 116+. No build step.
 
-1. Download or clone this repository.
+1. Download or clone this repository, or extract a release ZIP.
 2. Open `chrome://extensions` and enable **Developer mode**.
-3. Click **Load unpacked** and select the **`extension` folder**.
-4. Pin stream-mixer from the extensions menu.
+3. Click **Load unpacked** and select **`extension/`**, or the extracted release folder containing `manifest.json`.
+4. Pin **Stream Mixer** in the extensions menu.
 
-After updating, reload the extension and add your tabs again.
+After updates, reload the extension and re-add your tabs.
 
 ## Usage
 
-1. Play audio in a tab, open stream-mixer, and click **Add this tab**.
-2. Repeat for other streams. Volume correction and stereo placement are automatic.
-3. Use **Mix settings** for overall adjustments and each card's controls for individual streams.
-4. Drag a numbered **STEREO FIELD** marker to adjust its position while temporarily focusing only that stream. Previous Focus selections are restored when you release the marker.
-5. Use **Bypass all** to suspend processing, **Resume mix** to restore it, or **Release all** to return to normal playback.
+1. Play audio in an unmuted HTTP(S) tab, open **Stream Mixer**, and click **Add this tab**. Repeat for each stream.
+2. Adjust **Mix settings** globally or use each stream's card controls.
+3. Drag a numbered **STEREO FIELD** marker to reposition and temporarily focus that stream. Releasing restores previous Solo or Focus selections.
+4. **Bypass all** skips processing but keeps capture and per-stream mute active. **Resume mix** restores processing; **Release all** stops capture and restores normal tab playback.
 
-Global mix settings are saved locally. After restarting Chrome, add your tabs again. Noise reduction is intended for speech and may also reduce music or sound effects.
+Global settings are saved locally. After restarting Chrome, re-add tabs and reapply per-stream settings. Noise reduction targets speech and may reduce music or sound effects.
+
+Closing the popup stops thumbnail updates; audio processing continues. Release or close a tab to stop its capture.
 
 ## Permissions
 
-- `activeTab` (access to tabs where you open the extension)
-- `tabCapture` (audio capture from added tabs)
-- `tabs` (audible tab discovery, titles, URLs, and tab switching)
-- `scripting` (video thumbnails from authorized tabs)
-- `storage` (local settings and session notices)
-- `offscreen` (audio processing while the popup is closed)
+- `activeTab`: access to tabs where you open the extension.
+- `tabCapture`: audio from added tabs.
+- `tabs`: titles to identify playing and mixed tabs; URLs to check capture eligibility.
+- `scripting`: video thumbnails from authorized tabs.
+- `storage`: local settings and session notices.
+- `offscreen`: audio processing with the popup closed.
 
-Audio and thumbnails are processed locally, without recording audio or sending media to a server. Each tab must be added manually; protected content and site restrictions may prevent capture.
+Audio and thumbnails stay on-device; audio is not recorded. Tabs require manual addition, and protected content or site restrictions may prevent capture.
 
-See the [Privacy Policy](PRIVACY.md) for data use, storage, retention, and user controls.
+See the [Privacy Policy](PRIVACY.md) for data use, storage, retention, and controls.
 
 ## Development
 
-Requires Node.js 22 or later. Load the `extension` folder directly in Chrome.
+Requires Node.js 22+. Load `extension/` directly in Chrome.
 
 ```shell
 npm ci
@@ -70,8 +69,18 @@ npm run test:browser
 npm run release:package -- 0.1.0
 ```
 
-Pushing a version tag such as `0.1.0` or `v0.1.0` runs the release workflow and publishes a GitHub Release after checks pass. Prerelease tags such as `0.1.0-rc.1` are also supported.
+Regenerate bundled RNNoise assets with `npm run vendor:nr`. See [third-party notices](extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md) for sources and licenses.
 
-Each release includes `stream-mixer-<version>-<commit>.zip`, for example `stream-mixer-0.9.0-85f7cf9.zip`. The version omits an optional leading `v` and retains any prerelease suffix; the commit is the first seven characters of the checked-out commit hash. The ZIP contains the extension files with `manifest.json` at its root; extract it and load the extracted folder in Chrome.
+## Releases
 
-Bundled RNNoise assets can be regenerated with `npm run vendor:nr`. See [third-party notices](extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md) for sources and licenses.
+Push a tag such as `0.1.0`, `v0.1.0`, or `0.1.0-rc.1` to validate, test, and publish a GitHub Release. Manual workflow runs validate and test without publishing.
+
+Release ZIPs use `stream-mixer-<version>-<commit>.zip`, e.g. `stream-mixer-0.9.0-85f7cf9.zip`. The version drops the leading `v` but keeps prerelease suffixes; the commit is the checked-out hash's first seven characters.
+
+ZIPs contain Git-tracked `extension/` files with `manifest.json` at the root. Packaging sets its numeric `version` and full `version_name` from the tag without changing the source manifest. Extract and load as described above.
+
+## Chrome Web Store assets
+
+Promotional images, prompts, and earlier designs are in [stream-mixer-assets](https://github.com/honishi/stream-mixer-assets). Selected tile: `small-promo-tile/selected/small-promo-tile.png` (440×280, 24-bit RGB PNG, no alpha).
+
+Submit to the Chrome Web Store separately from GitHub Releases, with a public URL for the [Privacy Policy](PRIVACY.md).
