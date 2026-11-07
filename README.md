@@ -31,7 +31,7 @@ After updating, reload the extension and add your tabs again.
 1. Play audio in a tab, open stream-mixer, and click **Add this tab**.
 2. Repeat for other streams. Volume correction and stereo placement are automatic.
 3. Use **Mix settings** for overall adjustments and each card's controls for individual streams.
-4. Drag a numbered **STEREO FIELD** marker to adjust its position while temporarily listening to that stream solo.
+4. Drag a numbered **STEREO FIELD** marker to adjust its position while temporarily focusing only that stream. Previous Focus selections are restored when you release the marker.
 5. Use **Bypass all** to suspend processing, **Resume mix** to restore it, or **Release all** to return to normal playback.
 
 Global mix settings are saved locally. After restarting Chrome, add your tabs again. Noise reduction is intended for speech and may also reduce music or sound effects.

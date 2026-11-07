@@ -98,7 +98,7 @@ test('trim survives mix controls, drag, reorder and reopening, and resets when a
     const dot = await view.locator('.position-dot').last().boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await expect.poll(async () => (await state(view)).dragSoloTabId).toBe(secondId);
+    await expect.poll(async () => (await state(view)).dragFocusTabId).toBe(secondId);
     await expect.poll(async () => Math.abs(Math.max(...(await state(view)).streams[1].rms) - secondFocusedLevel - 18)).toBeLessThan(0.5);
     await view.mouse.up();
     expect(await command(view, 'SETTINGS', { settings: { spread: 0 } })).toHaveProperty('ok', true);

@@ -138,8 +138,8 @@
   "connectionError": {
     "message": "Could not connect to the extension. Close and reopen the popup."
   },
-  "dragSoloHelp": {
-    "message": "Solo preview · Release to rebalance"
+  "dragFocusHelp": {
+    "message": "Focus preview · Release to rebalance"
   },
   "preferredPan": {
     "message": "Preferred position: $pan$. Release to rebalance.",
@@ -207,8 +207,8 @@
   "otherSolo": {
     "message": "Another tab is soloed"
   },
-  "dragSoloState": {
-    "message": "● Solo preview"
+  "dragFocusState": {
+    "message": "● Focus preview"
   },
   "soloState": {
     "message": "● Solo playback"

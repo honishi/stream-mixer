@@ -39,7 +39,7 @@ test('card reordering renumbers cards and field markers while preserving audio s
     await expectOrder([ids[1], ids[2], ids[0]]);
     const reordered = await state(view);
     expect(reordered.soloTabId).toBe(initial.soloTabId);
-    expect(reordered.dragSoloTabId).toBeNull();
+    expect(reordered.dragFocusTabId).toBeNull();
     for (const stream of reordered.streams) {
       const previous = initial.streams.find((entry) => entry.id === stream.id);
       for (const key of ['targetPan', 'panPreference', 'color', 'noiseReductionEnabled', 'noiseReductionLevel']) {

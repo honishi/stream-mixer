@@ -39,11 +39,12 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     expect((await state(view)).streams.map((stream) => stream.targetPan)).toEqual(initial);
     await expect.poll(async () => {
       const current = await state(view);
-      return current.soloTabId === current.streams[0].id
+      return current.soloTabId === null && current.focusTabIds.length === 1
+        && current.focusTabIds[0] === current.streams[0].id
         && Math.max(...current.streams[0].rms) > -50
-        && current.streams.slice(1).every((stream) => Math.max(...stream.rms) < -60);
+        && current.streams.slice(1).every((stream) => Math.max(...stream.rms) > -60);
     }).toBe(true);
-    await expect(view.locator('.position-dot.sound-active')).toHaveCount(1);
+    await expect(view.locator('.position-dot.solo-muted')).toHaveCount(0);
     await view.evaluate(() => {
       window.dropPositions = new Promise((resolve) => {
         const positions = [];
@@ -64,7 +65,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     expect(mixed.streams[2].targetPan).toBe(0);
     await expect(view.locator('#reset-pans')).toBeVisible();
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.01)).toBe(true);
-    await expect.poll(async () => (await state(view)).soloTabId).toBe(null);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([]);
     await expect(view.locator('.position-dot.sound-active')).toHaveCount(3);
     // Audio/UI state can settle before the full visual observation window ends.
     const dropPositions = await view.evaluate(() => window.dropPositions);
@@ -79,19 +80,19 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await view.keyboard.press('Escape');
     await view.mouse.up();
     expect((await state(view)).streams.map((stream) => stream.targetPan)).toEqual(mixed.streams.map((stream) => stream.targetPan));
-    await expect.poll(async () => (await state(view)).soloTabId).toBe(null);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([]);
 
-    // Closing a popup while holding a marker cannot leave other tabs muted.
+    // Closing a popup while holding a marker restores the original focus.
     await first.hover();
     dot = await first.boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await expect.poll(async () => (await state(view)).soloTabId).toBe(mixed.streams[0].id);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([mixed.streams[0].id]);
     await view.close();
     await sources[0].mouse.up();
     view = await popup(app, sources[0], false);
     first = view.locator('.position-dot').first();
-    await expect.poll(async () => (await state(view)).soloTabId).toBe(null);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([]);
     await expect(view.locator('.position-dot.sound-active')).toHaveCount(3);
     await sources[0].locator('#pause').click();
     await expect(first).not.toHaveClass(/sound-active/);

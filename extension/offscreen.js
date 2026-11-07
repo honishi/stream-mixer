@@ -15,8 +15,8 @@ let operation = Promise.resolve();
 let panOrder = [];
 let cardOrder = [];
 let bypassed = false;
-let solo;
-let soloTimer;
+let dragFocus;
+let dragFocusTimer;
 let selectedSoloTabId = null;
 const selectedFocusTabIds = new Set();
 
@@ -73,7 +73,7 @@ function applySettings() {
 /** @returns {object} */
 function getState() {
   return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
-    selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
+    selectedSoloTabId, dragFocusTabId: dragFocus?.tabId ?? null,
     selectedFocusTabIds: [...selectedFocusTabIds], focusTabIds: effectiveFocusTabIds(),
     streams: cardOrder.map((id) => {
       const entry = streams.get(id);
@@ -94,7 +94,7 @@ async function remove(id) {
   cardOrder = cardOrder.filter((entryId) => entryId !== id);
   if (selectedSoloTabId === id) selectedSoloTabId = null;
   selectedFocusTabIds.delete(id);
-  if (solo?.tabId === id) endSolo(solo.owner);
+  if (dragFocus?.tabId === id) endDragFocus(dragFocus.owner);
   else applyStreamGains();
   panOrder = panOrder.filter((entryId) => entryId !== id);
   entry.stream.getTracks().forEach((track) => { track.onended = null; track.stop(); });
@@ -178,8 +178,11 @@ function setNoiseReductionLevel(tabId, level) {
   entry.noise?.port.postMessage({ type: 'mix', value: NOISE_LEVELS[level] });
 }
 
-function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
-function effectiveFocusTabIds() { return bypassed || effectiveSoloTabId() !== null ? [] : [...selectedFocusTabIds]; }
+function effectiveSoloTabId() { return bypassed || dragFocus ? null : selectedSoloTabId; }
+function effectiveFocusTabIds() {
+  if (bypassed || effectiveSoloTabId() !== null) return [];
+  return dragFocus ? [dragFocus.tabId] : [...selectedFocusTabIds];
+}
 
 function audibleGain(entry) {
   if (entry.mixMuted) return 0;
@@ -231,30 +234,30 @@ function toggleFocus(tabId) {
   applyStreamGains();
 }
 
-function endSolo(owner) {
-  if (!solo || solo.owner !== owner) return;
-  solo = undefined;
-  clearTimeout(soloTimer);
+function endDragFocus(owner) {
+  if (!dragFocus || dragFocus.owner !== owner) return;
+  dragFocus = undefined;
+  clearTimeout(dragFocusTimer);
   applyStreamGains();
 }
 
-function beginSolo(tabId, owner) {
-  if (bypassed || !streams.has(tabId)) throw new Error('This tab cannot be soloed.');
-  if (typeof owner !== 'string' || !owner) throw new Error('Invalid solo operation.');
-  solo = { tabId, owner };
-  clearTimeout(soloTimer);
+function beginDragFocus(tabId, owner) {
+  if (bypassed || !streams.has(tabId)) throw new Error('This tab cannot be focused.');
+  if (typeof owner !== 'string' || !owner) throw new Error('Invalid drag focus operation.');
+  dragFocus = { tabId, owner };
+  clearTimeout(dragFocusTimer);
   applyStreamGains(0.01);
   // A lease is a fallback for a lost popup/worker connection. The port normally
-  // releases solo immediately; a crashed owner cannot leave other streams muted.
-  soloTimer = setTimeout(() => {
-    operation = operation.then(() => endSolo(owner)).catch(console.error);
+  // restores Focus immediately; a crashed owner cannot leave a temporary focus active.
+  dragFocusTimer = setTimeout(() => {
+    operation = operation.then(() => endDragFocus(owner)).catch(console.error);
   }, 3000);
 }
 
 async function setBypass(enabled) {
   if (typeof enabled !== 'boolean') throw new Error('Invalid bypass setting.');
   if (enabled === bypassed) return;
-  if (solo) endSolo(solo.owner);
+  if (dragFocus) endDragFocus(dragFocus.owner);
   if (context) {
     for (const entry of streams.values()) {
       entry.fade.gain.cancelScheduledValues(context.currentTime);
@@ -378,8 +381,8 @@ async function handle(message) {
     case 'TOGGLE_NR': await toggleNoiseReduction(message.tabId); break;
     case 'TOGGLE_NORMALIZE': toggleNormalization(message.tabId); break;
     case 'NR_LEVEL': setNoiseReductionLevel(message.tabId, message.level); break;
-    case 'DRAG_SOLO': beginSolo(message.tabId, message.owner); break;
-    case 'END_DRAG_SOLO': endSolo(message.owner); break;
+    case 'DRAG_FOCUS': beginDragFocus(message.tabId, message.owner); break;
+    case 'END_DRAG_FOCUS': endDragFocus(message.owner); break;
     case 'RESUME': if (context) await context.resume(); break;
     default: throw new Error('Unknown audio operation.');
   }

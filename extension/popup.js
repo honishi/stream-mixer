@@ -58,7 +58,7 @@ function endDrag(commit = false) {
   dragging = undefined;
   drag.dot.classList.remove('dragging');
   if (drag.dot.hasPointerCapture(drag.pointerId)) drag.dot.releasePointerCapture(drag.pointerId);
-  const releaseSolo = () => { clearInterval(drag.heartbeat); drag.port.disconnect(); };
+  const releaseFocus = () => { clearInterval(drag.heartbeat); drag.port.disconnect(); };
   if (commit && drag.moved) {
     void act('PAN_PREFERENCE', { tabId: drag.id, pan: drag.pan }).then((result) => {
       // Draw the resolved target directly from the response. Rendering the
@@ -71,9 +71,9 @@ function endDrag(commit = false) {
       }
       pendingPans.delete(drag.id);
       if (latestState) render(latestState);
-    }).finally(releaseSolo);
+    }).finally(releaseFocus);
   } else {
-    releaseSolo();
+    releaseFocus();
     if (latestState) render(latestState);
   }
 }
@@ -111,7 +111,7 @@ function attachPanControl(dot, id) {
       offset: event.clientX - (rect.left + rect.width / 2), pan: stream.targetPan, moved: false, port, heartbeat };
     dot.setPointerCapture(event.pointerId);
     dot.classList.add('dragging');
-    $('field-help').textContent = t('dragSoloHelp');
+    $('field-help').textContent = t('dragFocusHelp');
   });
   const move = (event) => {
     if (dragging?.id !== id || dragging.pointerId !== event.pointerId) return;
@@ -285,13 +285,14 @@ function renderStreamControls(card, stream) {
   nrLevel.ariaLabel = t('nrStrengthLabel', [stream.title]);
   nrLevel.title = bypassed ? t('nrBypassed') : t('nrStrengthHint');
   const soloButton = card.querySelector('.solo-button');
-  const selectedSolo = latestState.selectedSoloTabId === stream.id;
+  const selectedSolo = latestState.dragFocusTabId == null && latestState.selectedSoloTabId === stream.id;
   soloButton.setAttribute('aria-pressed', String(selectedSolo));
   soloButton.disabled = busy || bypassed;
   soloButton.ariaLabel = t(selectedSolo ? 'soloDisable' : 'soloEnable', [stream.title]);
   soloButton.title = `${t('solo')}: ${t(selectedSolo ? 'soloDisableHint' : 'soloEnableHint')}`;
   const focusButton = card.querySelector('.focus-button');
-  const selectedFocus = latestState.selectedFocusTabIds.includes(stream.id);
+  const selectedFocus = (latestState.dragFocusTabId == null
+    ? latestState.selectedFocusTabIds : latestState.focusTabIds).includes(stream.id);
   focusButton.setAttribute('aria-pressed', String(selectedFocus));
   focusButton.disabled = busy || bypassed;
   focusButton.ariaLabel = t(selectedFocus ? 'focusDisable' : 'focusEnable', [stream.title]);
@@ -368,7 +369,7 @@ function renderStream(stream, index) {
   if (stream.muted) stateKey = 'tabMuted';
   else if (stream.mixMuted) stateKey = 'mixMutedState';
   else if (soloMuted) stateKey = 'otherSolo';
-  else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
+  else if (latestState.dragFocusTabId === stream.id && latestState.focusTabIds.includes(stream.id)) stateKey = 'dragFocusState';
   else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
   else if (bypassed) stateKey = 'bypassState';
   else if (latestState.focusTabIds.includes(stream.id)) stateKey = 'focusState';

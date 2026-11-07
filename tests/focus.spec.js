@@ -65,18 +65,44 @@ test('multiple Focus selections retain independent levels across playback contro
     await view.locator('.focus-button').nth(0).click();
     await view.locator('.focus-button').nth(1).click();
 
-    // A drag suspends the group temporarily, keeping every selected button lit.
+    // A drag focuses only its stream while preserving the selected group for release.
     await setSpread(1);
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.001)).toBe(true);
+    const beforeDrag = (await state(view)).streams.map((stream) => Math.max(...stream.rms));
     const dot = await view.locator('.position-dot').nth(2).boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await expect.poll(async () => (await state(view)).dragSoloTabId).toBe(thirdId);
+    await expect.poll(async () => (await state(view)).dragFocusTabId).toBe(thirdId);
     const preview = await state(view);
-    expect(preview.focusTabIds).toEqual([]);
+    expect(preview.soloTabId).toBeNull();
+    expect(preview.focusTabIds).toEqual([thirdId]);
     expect(new Set(preview.selectedFocusTabIds)).toEqual(new Set([firstId, secondId]));
-    await expect.poll(async () => (await state(view)).streams.slice(0, 2).every((stream) => Math.max(...stream.rms) < -90)).toBe(true);
+    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(1);
+    await expect(view.locator('.focus-button').nth(2)).toHaveAttribute('aria-pressed', 'true');
+    await expect(view.locator('.stream-state').nth(2)).toHaveText(await localized(view, 'dragFocusState'));
+    await expect.poll(async () => (await state(view)).streams.every((stream, index) =>
+      Math.abs(Math.max(...stream.rms) - beforeDrag[index] - (index === 2 ? 18 : -18)) < 0.5)).toBe(true);
     await view.mouse.up();
+    await expect.poll(async () => (await state(view)).dragFocusTabId).toBeNull();
+    await expectSelection([firstId, secondId]);
+
+    // Canceling and closing the popup restore the complete group too, including
+    // when the dragged stream was already a member of that group.
+    for (const finish of ['escape', 'close']) {
+      await view.locator('.position-dot').first().hover();
+      await view.mouse.down();
+      await expect.poll(async () => (await state(view)).focusTabIds).toEqual([firstId]);
+      if (finish === 'escape') {
+        await view.keyboard.press('Escape');
+        await view.mouse.up();
+      } else {
+        await view.close();
+        await sources[2].mouse.up();
+        view = await popup(app, sources[2], false);
+      }
+      await expect.poll(async () => (await state(view)).dragFocusTabId).toBeNull();
+      await expectSelection([firstId, secondId]);
+    }
     await setSpread(0);
     await expectSelection([firstId, secondId]);
     await expectLevels([firstId, secondId]);

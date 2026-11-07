@@ -138,8 +138,8 @@
   "connectionError": {
     "message": "拡張に接続できませんでした。開き直してください。"
   },
-  "dragSoloHelp": {
-    "message": "この音声をソロ再生中 · 離すと全体を再配置"
+  "dragFocusHelp": {
+    "message": "この音声だけを Focus 中 · 離すと元の Focus に戻して再配置"
   },
   "preferredPan": {
     "message": "希望位置 $pan$。離すと全体を再配置",
@@ -207,8 +207,8 @@
   "otherSolo": {
     "message": "他のタブをソロ再生中"
   },
-  "dragSoloState": {
-    "message": "● ドラッグ中のソロ再生"
+  "dragFocusState": {
+    "message": "● ドラッグ中の Focus"
   },
   "soloState": {
     "message": "● ソロ再生中"

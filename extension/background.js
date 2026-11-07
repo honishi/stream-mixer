@@ -173,7 +173,7 @@ chrome.runtime.onConnect.addListener((port) => {
     serialize(async () => {
       if (disconnected || tabId === undefined) return;
       if (!(await hasEngine())) throw new Error(t('engineStopped'));
-      await engine('DRAG_SOLO', { tabId, owner });
+      await engine('DRAG_FOCUS', { tabId, owner });
     }).catch((error) => {
       if (!disconnected) port.postMessage({ error: error.message });
     });
@@ -181,7 +181,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onDisconnect.addListener(() => {
     disconnected = true;
     serialize(async () => {
-      if (await hasEngine()) await engine('END_DRAG_SOLO', { owner });
+      if (await hasEngine()) await engine('END_DRAG_FOCUS', { owner });
     }).catch(console.error);
   });
 });

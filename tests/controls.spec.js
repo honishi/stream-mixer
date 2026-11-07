@@ -46,7 +46,9 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
     const dot = await secondDot.boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await expectSolo(ids[1]);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([ids[1]]);
+    expect((await state(view)).soloTabId).toBeNull();
+    await expectAllPlaying();
     expect((await state(view)).selectedSoloTabId).toBe(ids[0]);
     await view.mouse.up();
     await expectSolo(ids[0]);
@@ -86,7 +88,7 @@ test('Solo buttons retain selection, coexist with drag and bypass, and release o
   } finally { await app.context.close(); }
 });
 
-test('Focus lowers other streams by 18 dB and restores after solo previews, bypass, and popup reopening', async () => {
+test('Focus lowers other streams by 18 dB and restores after drag previews, bypass, and popup reopening', async () => {
   const app = await launch();
   try {
     const sources = [];
@@ -132,18 +134,19 @@ test('Focus lowers other streams by 18 dB and restores after solo previews, bypa
     await expectLevels(firstId);
     expect((await state(view)).selectedSoloTabId).toBeNull();
 
-    // Pan dragging temporarily solos its stream, then returns to Focus.
+    // Pan dragging temporarily focuses only its stream, then restores Focus.
     await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 1 } }));
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.01)).toBe(true);
     await expect(view.locator('.position-dot').nth(1)).toBeEnabled();
     // Audio convergence does not imply that the popup's CSS transition has ended.
     // Hover waits for a stable, hittable marker before pressing the pointer.
     await view.locator('.position-dot').nth(1).hover();
+    const beforeDrag = Math.max(...(await state(view)).streams[0].rms);
     await view.mouse.down();
-    await expect.poll(async () => (await state(view)).soloTabId).toBe(secondId);
-    expect((await state(view)).focusTabIds).toEqual([]);
+    await expect.poll(async () => (await state(view)).focusTabIds).toEqual([secondId]);
+    expect((await state(view)).soloTabId).toBeNull();
     expect((await state(view)).selectedFocusTabIds).toEqual([firstId]);
-    await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(-90);
+    await expect.poll(async () => Math.abs(Math.max(...(await state(view)).streams[0].rms) - beforeDrag + 18)).toBeLessThan(0.5);
     await view.mouse.up();
     await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 0 } }));
     await expectLevels(firstId);
@@ -228,8 +231,8 @@ test('per-tab mute persists across solo, drag, bypass, ordering, and popup lifet
     const dot = await view.locator('.position-dot').first().boundingBox();
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
-    await expect.poll(async () => (await state(view)).dragSoloTabId).toBe(firstId);
-    await expectAudible([]);
+    await expect.poll(async () => (await state(view)).dragFocusTabId).toBe(firstId);
+    await expectAudible([secondId]);
     await view.mouse.up();
     await expectAudible([secondId]);
     await view.locator('.nr-button').first().click();
