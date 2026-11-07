@@ -76,6 +76,9 @@ async function popup(app, activeSource, grant = true) {
   if (activeSource) await activeSource.bringToFront();
   await page.goto(`chrome-extension://${app.id}/popup.html`);
   await expect(page.locator('#count')).toHaveText(/^\d+ STREAMS?$/);
+  // Keep the source active until init captures its tab ID, then show the popup.
+  // Background tabs throttle animation frames on Linux, unlike a visible popup.
+  await page.bringToFront();
   return page;
 }
 

@@ -45,13 +45,16 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     }).toBe(true);
     await expect(view.locator('.position-dot.sound-active')).toHaveCount(1);
     await view.evaluate(() => {
-      window.dropPositions = [];
-      const until = performance.now() + 650;
-      const sample = () => {
-        window.dropPositions.push(document.querySelector('.position-dot').getBoundingClientRect().x);
-        if (performance.now() < until) requestAnimationFrame(sample);
-      };
-      requestAnimationFrame(sample);
+      window.dropPositions = new Promise((resolve) => {
+        const positions = [];
+        const until = performance.now() + 650;
+        const sample = () => {
+          positions.push(document.querySelector('.position-dot').getBoundingClientRect().x);
+          if (performance.now() < until) requestAnimationFrame(sample);
+          else resolve(positions);
+        };
+        requestAnimationFrame(sample);
+      });
     });
     await view.mouse.up();
     await expect.poll(async () => (await state(view)).streams[0].targetPan).toBeGreaterThan(0.88);
@@ -63,6 +66,7 @@ test('drag preferences rebalance, survive bypass, and can return to automatic la
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.01)).toBe(true);
     await expect.poll(async () => (await state(view)).soloTabId).toBe(null);
     await expect(view.locator('.position-dot.sound-active')).toHaveCount(3);
+    // Audio/UI state can settle before the full visual observation window ends.
     const dropPositions = await view.evaluate(() => window.dropPositions);
     expect(dropPositions.length).toBeGreaterThan(5);
     expect(Math.min(...dropPositions)).toBeGreaterThan(field.x + field.width * 0.6);

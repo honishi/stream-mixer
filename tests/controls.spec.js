@@ -136,8 +136,9 @@ test('Focus lowers other streams by 18 dB and restores after solo previews, bypa
     await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 1 } }));
     await expect.poll(async () => (await state(view)).streams.every((stream) => Math.abs(stream.pan - stream.targetPan) < 0.01)).toBe(true);
     await expect(view.locator('.position-dot').nth(1)).toBeEnabled();
-    const dot = await view.locator('.position-dot').nth(1).boundingBox();
-    await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
+    // Audio convergence does not imply that the popup's CSS transition has ended.
+    // Hover waits for a stable, hittable marker before pressing the pointer.
+    await view.locator('.position-dot').nth(1).hover();
     await view.mouse.down();
     await expect.poll(async () => (await state(view)).soloTabId).toBe(secondId);
     expect((await state(view)).focusTabIds).toEqual([]);
