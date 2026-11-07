@@ -50,10 +50,10 @@ async function launch(profile = '', directory = extensionPath) {
   }
 }
 
-async function source(app, index = 0, mode = 'tone') {
+async function source(app, index = 0, mode = 'tone', frequency = 220 + index * 110) {
   const page = await app.context.newPage();
   const titles = ['深夜ラジオ / 夜の雑談', 'ゲーム実況 — 配信テスト', '作業用 BGM / Live session'];
-  await page.goto(`${baseUrl}/?title=${encodeURIComponent(titles[index % titles.length])}&frequency=${220 + index * 110}&amplitude=${mode === 'tone' && index % 2 === 0 ? 0.035 : 0.2}&index=${index}&mode=${mode}`);
+  await page.goto(`${baseUrl}/?title=${encodeURIComponent(titles[index % titles.length])}&frequency=${frequency}&amplitude=${mode === 'tone' && index % 2 === 0 ? 0.035 : 0.2}&index=${index}&mode=${mode}`);
   await page.locator('#play').click();
   await expect.poll(async () => app.worker.evaluate(async (url) => {
     const [tab] = await chrome.tabs.query({ url });

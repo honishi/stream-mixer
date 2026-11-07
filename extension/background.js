@@ -127,12 +127,13 @@ async function handle(message) {
     case 'TOGGLE_MUTE':
     case 'TOGGLE_NR':
     case 'TOGGLE_NORMALIZE':
+    case 'VOLUME_TRIM':
     case 'NR_LEVEL':
     case 'REORDER':
     case 'BYPASS': return serialize(async () => {
       if (!(await hasEngine())) throw new Error(t('addFirst'));
       return engine(message.type, { tabId: message.tabId, pan: message.pan, enabled: message.enabled,
-        level: message.level, beforeTabId: message.beforeTabId });
+        level: message.level, trimDb: message.trimDb, beforeTabId: message.beforeTabId });
     });
     case 'ENGINE_CHANGED': return serialize(async () => {
       if (await hasEngine()) {

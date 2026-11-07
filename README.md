@@ -46,7 +46,7 @@ The order survives closing the popup, and newly added tabs appear at the end. Re
 The list heading shows the current state: standby, mixing, solo playback, focus playback, bypassed, or paused.
 
 - **STEREO FIELD / PAN**: Each stream's horizontal position. Numbers correspond to the card list. Markers move to their target positions while the audio follows smoothly. A glowing ring responds to each stream's audio level.
-- **OUTPUT**: Left and right RMS meters after NR, normalization, peak limiting, panning, Solo, Focus, and mute, but before overall volume. During bypass, meters still reflect mute. White lines show peaks from roughly the last 100 ms. The scale is −60 to 0 dBFS.
+- **OUTPUT**: Left and right RMS meters after NR, normalization, peak limiting, panning, Solo, Focus, mute, and per-stream volume adjustment, but before overall volume. During bypass, meters still reflect mute. White lines show peaks from roughly the last 100 ms. The scale is −60 to 0 dBFS.
 - **Normalize (arrows)**: Toggles automatic volume correction for that tab. A lit button means it is enabled. The value beside the button shows current correction: `+3 dB` boosts the signal and `−3 dB` attenuates it. Momentary peak limiting is shown separately beside the OUTPUT label.
 - **Silent / paused**: The tab remains controlled and keeps its position. Gain is not increased to amplify silence.
 
@@ -66,6 +66,14 @@ Each tab's setting survives reopening the popup, card reordering, global setting
 
 Setting Normalize to 0% gradually returns automatic correction to 0 dB while keeping peak limiting active. Setting stereo width to 0% centers every stream. The default width is 100%; with two or more tabs, automatic placement spans the full range from left (−1) to right (+1). At 100%, dragging and the Home/End keys can also request the endpoints. Previously saved width settings are retained, so set width to 100% in **Mix settings** if an older setting limits the range. Playback hardware is not restricted. Mono output does not provide stereo separation.
 
+### Per-stream volume adjustment
+
+If a stream still sounds too loud after Normalize and NR, use the small selector beside its OUTPUT meters. Choose **Normal**, **−3 dB**, **−6 dB**, or **−9 dB**. Normal is the default and adds no attenuation. Each stream can have its own setting.
+
+This adjustment is applied after Normalize and NR, so automatic correction does not cancel it. It works with Normalize off as well. Solo and drag previews retain the adjustment; Focus adds its 18 dB attenuation to the other streams' selected adjustments. Mute always takes priority. The displayed Normalize correction remains separate, while OUTPUT meters include the manual adjustment.
+
+The selection survives card reordering and closing the popup. Bypass temporarily suspends it and disables the selector; resuming restores it. Releasing and re-adding a tab or restarting Chrome resets its adjustment to Normal.
+
 ### Adjusting positions by dragging
 
 Holding a numbered marker temporarily solos that stream. Dropping restores the previous playback state and rebalances the order and spacing of all streams, giving priority to the drop location. The marker moves directly from the drop location to its new target without first returning to its original position.
@@ -81,7 +89,7 @@ Placement combines the requested position with even spacing instead of fixing th
 
 ### Bypass and release
 
-**Bypass all** retains the controlled tabs but removes NR, normalization, panning, Solo, Focus, overall volume, and peak limiting from the signal path. It plays the original stereo audio, so loudness may differ from the processed mix. During bypass, audio and placement controls other than mute are disabled. Meters show the original signal after mute, correction shows `—`, and pan shows `BYPASS`.
+**Bypass all** retains the controlled tabs but removes NR, normalization, panning, Solo, Focus, per-stream volume adjustment, overall volume, and peak limiting from the signal path. It plays the original stereo audio, so loudness may differ from the processed mix. During bypass, audio and placement controls other than mute are disabled. Meters show the original signal after mute, correction shows `—`, and pan shows `BYPASS`.
 
 **Resume mix** restores the previous settings and positions. Bypass remains active when the popup is closed. **Release all** is a separate action that stops capture entirely.
 
@@ -260,7 +268,5 @@ After `npm ci`, run `npm run vendor:nr` to regenerate the runtime and WASM files
 | `extension/shared/noise.js` | The three NR strengths and their default. |
 | `extension/video-snapshot.js` | Video selection and thumbnail capture in authorized tabs. |
 | `extension/shared/panning.js` | Rebalancing based on position preferences and spacing. |
-
-Manual volume adjustment per tab is a possible future addition.
 
 Design references: [tabCapture API](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen), and [Chrome audio capture guide](https://developer.chrome.com/docs/extensions/how-to/web-platform/screen-capture).

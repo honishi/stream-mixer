@@ -470,5 +470,25 @@
   },
   "resumeBeforeFocus": {
     "message": "Resume the mix before changing Focus."
+  },
+  "trim": {
+    "message": "Stream volume"
+  },
+  "trimNormal": {
+    "message": "Normal"
+  },
+  "trimLabel": {
+    "message": "Volume adjustment for $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "trimHint": {
+    "message": "Lower only this stream after Normalize and NR. Normal leaves its volume unchanged."
+  },
+  "trimBypassed": {
+    "message": "Volume adjustment is paused during bypass. Resume the mix to apply it again."
   }
 }

@@ -90,6 +90,11 @@ for (const locale of ['en', 'ja']) {
       await view.locator('.normalize-button').click();
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-label', await localized(view, 'normalizeEnable', [title]));
       await expectStablePeakLayout(view, audio);
+      await expect(view.locator('.trim-level option:checked')).toHaveText(locale === 'ja' ? '通常' : 'Normal');
+      await expect(view.locator('.trim-level')).toHaveAttribute('aria-label', await localized(view, 'trimLabel', [title]));
+      await view.locator('.trim-level').selectOption('-6');
+      await expect(view.locator('.trim-level')).toHaveValue('-6');
+      await expect(view.locator('.trim-level')).toHaveAttribute('title', await localized(view, 'trimHint'));
       expect(await view.locator('h3 b').count()).toBe(0);
       await expect(view.locator('.solo-button')).toHaveAttribute('aria-label', await localized(view, 'soloEnable', [title]));
       await view.locator('.nr-button').click();
@@ -114,6 +119,10 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('.focus-button')).toHaveAttribute('aria-label', await localized(view, 'focusDisable', [title]));
       await expect(view.locator('.solo-button')).toHaveAttribute('aria-pressed', 'false');
       await expect(view.locator('#mix-heading')).toHaveText(await localized(view, 'focusHeading'));
+      const panLabelGap = await view.locator('.pan-reading').evaluate((element) =>
+        element.querySelector('.pan-value').getBoundingClientRect().left
+        - element.querySelector('[data-i18n="pan"]').getBoundingClientRect().right);
+      expect(panLabelGap).toBeGreaterThanOrEqual(4);
       await view.locator('.position-dot').focus();
       await view.keyboard.press('End');
       await expect(view.locator('#reset-pans')).toBeVisible();
@@ -137,6 +146,8 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'バイパス中' : 'Bypassed');
       await expect(view.locator('#bypass')).toHaveText(await localized(view, 'resumeMix'));
       await expect(view.locator('.nr-button')).toHaveAttribute('title', await localized(view, 'nrBypassed'));
+      await expect(view.locator('.trim-level')).toBeDisabled();
+      await expect(view.locator('.trim-level')).toHaveAttribute('title', await localized(view, 'trimBypassed'));
       await view.close();
       view = await popup(app, audio, false);
       await expect(view.locator('html')).toHaveAttribute('lang', locale);

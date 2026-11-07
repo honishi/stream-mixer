@@ -80,7 +80,7 @@ function getState() {
       return {
         id: entry.id, title: entry.title, color: entry.color, pan: entry.pan.pan.value,
         targetPan: entry.targetPan, panPreference: entry.panPreference,
-        normalizeEnabled: entry.normalizeEnabled, mixMuted: entry.mixMuted,
+        normalizeEnabled: entry.normalizeEnabled, mixMuted: entry.mixMuted, trimDb: entry.trimDb,
         noiseReductionEnabled: entry.noiseReductionEnabled, noiseReductionLevel: entry.noiseReductionLevel, ...entry.stats,
       };
     }),
@@ -183,14 +183,26 @@ function effectiveFocusTabId() { return bypassed || effectiveSoloTabId() !== nul
 
 function audibleGain(entry) {
   if (entry.mixMuted) return 0;
+  // fade sits after normalization and panning, so automatic correction cannot
+  // undo the user's trim. Solo and Focus retain it; bypass plays original audio.
+  const trim = bypassed ? 1 : 10 ** (entry.trimDb / 20);
   const selected = effectiveSoloTabId();
-  if (selected !== null) return selected === entry.id ? 1 : 0;
+  if (selected !== null) return selected === entry.id ? trim : 0;
   const focused = effectiveFocusTabId();
-  return focused !== null && focused !== entry.id ? FOCUS_BACKGROUND_GAIN : 1;
+  return trim * (focused !== null && focused !== entry.id ? FOCUS_BACKGROUND_GAIN : 1);
 }
 
 function applyStreamGains(timeConstant = 0.02) {
   for (const entry of streams.values()) entry.fade.gain.setTargetAtTime(audibleGain(entry), context.currentTime, timeConstant);
+}
+
+/** @returns {void} */
+function setVolumeTrim(tabId, trimDb) {
+  const entry = requireStream(tabId);
+  if (bypassed) throw new Error('Resume the mix before adjusting stream volume.');
+  if (![0, -3, -6, -9].includes(trimDb)) throw new Error('Invalid stream volume adjustment.');
+  entry.trimDb = trimDb;
+  applyStreamGains();
 }
 
 /** @returns {void} */
@@ -298,7 +310,7 @@ async function add(message) {
     const fade = new GainNode(context, { gain: 0 });
     nodes.push(fade);
     const entry = { ...message.tab, stream, source, normalize, pan, meter, fade,
-      color: sequence++ % 6, targetPan: 0, panPreference: null, normalizeEnabled: true, mixMuted: false,
+      color: sequence++ % 6, targetPan: 0, panPreference: null, normalizeEnabled: true, mixMuted: false, trimDb: 0,
       noiseReductionEnabled: false, noiseReductionLevel: DEFAULT_NOISE_LEVEL,
       stats: { inputDb: -120, correctionDb: 0, limitingDb: 0, rms: [-120, -120], peak: [-120, -120] },
     };
@@ -358,6 +370,7 @@ async function handle(message) {
       applySettings();
       break;
     case 'BYPASS': await setBypass(message.enabled); break;
+    case 'VOLUME_TRIM': setVolumeTrim(message.tabId, message.trimDb); break;
     case 'TOGGLE_MUTE': toggleMute(message.tabId); break;
     case 'TOGGLE_SOLO': toggleSolo(message.tabId); break;
     case 'TOGGLE_FOCUS': toggleFocus(message.tabId); break;

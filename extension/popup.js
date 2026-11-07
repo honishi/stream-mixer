@@ -222,6 +222,9 @@ function createStreamCard(id) {
   card.querySelector('.focus-button').addEventListener('click', () => act('TOGGLE_FOCUS', { tabId: id }));
   card.querySelector('.mute-button').addEventListener('click', () => act('TOGGLE_MUTE', { tabId: id }));
   card.querySelector('.normalize-button').addEventListener('click', () => act('TOGGLE_NORMALIZE', { tabId: id }));
+  card.querySelector('.trim-level').addEventListener('change', (event) => {
+    void act('VOLUME_TRIM', { tabId: id, trimDb: Number(event.currentTarget.value) });
+  });
   card.querySelector('.nr-level').addEventListener('change', (event) => {
     void act('NR_LEVEL', { tabId: id, level: event.currentTarget.value });
   });
@@ -257,6 +260,12 @@ function renderStreamControls(card, stream) {
   const normalizeHint = stream.normalizeEnabled ? 'normalizeDisableHint' : 'normalizeEnableHint';
   normalizeButton.title = bypassed ? t('resumeBeforeNormalize')
     : `${t('normalize')}: ${t(normalizeHint)}`;
+  const trimLevel = card.querySelector('.trim-level');
+  if (!busy) trimLevel.value = String(stream.trimDb);
+  trimLevel.disabled = busy || bypassed;
+  trimLevel.dataset.reduced = String(stream.trimDb < 0);
+  trimLevel.ariaLabel = t('trimLabel', [stream.title]);
+  trimLevel.title = t(bypassed ? 'trimBypassed' : 'trimHint');
   const nrButton = card.querySelector('.nr-button');
   nrButton.setAttribute('aria-pressed', String(stream.noiseReductionEnabled));
   nrButton.disabled = busy || bypassed;
@@ -506,7 +515,7 @@ async function act(type, payload) {
   busy = true;
   showError(null);
   $('add').disabled = $('stop-all').disabled = $('bypass').disabled = $('reset-pans').disabled = true;
-  for (const control of document.querySelectorAll('.nr-button, .nr-level, .normalize-button, .solo-button, .focus-button, .mute-button, .remove-button, .position-dot')) control.disabled = true;
+  for (const control of document.querySelectorAll('.nr-button, .nr-level, .trim-level, .normalize-button, .solo-button, .focus-button, .mute-button, .remove-button, .position-dot')) control.disabled = true;
   try { return await request(type, payload); }
   catch (error) { showError(error); }
   finally { busy = false; await refresh(); }

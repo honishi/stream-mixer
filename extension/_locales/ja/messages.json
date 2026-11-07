@@ -470,5 +470,25 @@
   },
   "resumeBeforeFocus": {
     "message": "Focusを切り替えるには、先にミックスを再開してください。"
+  },
+  "trim": {
+    "message": "この放送の音量"
+  },
+  "trimNormal": {
+    "message": "通常"
+  },
+  "trimLabel": {
+    "message": "$title$ の音量調整",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "trimHint": {
+    "message": "Normalize・NR適用後に、この放送だけ音量を下げます。「通常」は追加の調整なしです。"
+  },
+  "trimBypassed": {
+    "message": "バイパス中は音量調整を一時停止しています。ミックスを再開すると再び適用されます。"
   }
 }
