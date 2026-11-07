@@ -1,0 +1,12 @@
+Mode: built-in image_gen (background only); FFmpeg and ImageMagick (original UI extraction and compositing).
+Source: user-provided CleanShot 2026-11-07 at 19.18.04.mp4, 2098x1434, frame at 00:21.
+Style reference: stream-mixer-assets/screenshots/en/selected/01-overview.png.
+UI crop: 1356x974+364+156, preserved at native resolution without resampling.
+Export: 1600x1080, 24-bit RGB PNG, no alpha. UI placed at +122+53.
+
+Background prompt:
+Use case: precise-object-edit
+Asset type: background plate for a GitHub README screenshot, 1600x1080 landscape.
+Reference image: adopted Stream Mixer screenshot; use ONLY its background style.
+Remove the entire white application screenshot rectangle and all interface elements, text, thumbnails, icons, and lines. Fill the whole canvas with a seamless extremely subtle soft color wash matching the existing margins: pale desaturated sage gray in upper left, near-white ivory center, very light warm gray in lower right. Quiet, airy, restrained, smooth and clean. No objects, no UI, no text, no distinct shapes, no borders. This is a background plate onto which original screenshot pixels will be composited later. Output 1600x1080.
+
