@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  --bg: #f5f7f1;
+  --bg: #fdfdfc;
   --panel: #ffffff;
   --line: #c9d2c1;
   --text: #20291d;
@@ -16,7 +16,7 @@
   --meter-track: #dce3d5;
   --card-start: #ffffff;
   --card-end: #f0f4eb;
-  --preview-badge: #f5f7f1f2;
+  --preview-badge: #fdfdfcf2;
   --warning: #805a16;
   --danger: #994b36;
   --disabled-text: #74816a;

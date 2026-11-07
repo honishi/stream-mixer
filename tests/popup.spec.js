@@ -26,7 +26,7 @@ test('system theme changes update the open popup without changing the mix or lay
     for (const colorScheme of ['dark', 'light', 'dark']) {
       await view.emulateMedia({ colorScheme });
       await expect(view.locator('html')).toHaveCSS('color-scheme', colorScheme);
-      await expect(view.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(20, 23, 20)' : 'rgb(245, 247, 241)');
+      await expect(view.locator('body')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(20, 23, 20)' : 'rgb(253, 253, 252)');
       // Check actual rendered foreground/background pairs, including all six stream colors.
       const contrasts = await view.evaluate(() => {
         const context = document.createElement('canvas').getContext('2d');
