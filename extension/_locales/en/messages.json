@@ -434,6 +434,12 @@
   "mixMutedState": {
     "message": "Muted in mixer"
   },
+  "muteHint": {
+    "message": "Mute this stream"
+  },
+  "unmuteHint": {
+    "message": "Unmute this stream"
+  },
   "focus": {
     "message": "Focus"
   },

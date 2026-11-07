@@ -260,7 +260,7 @@ function renderStreamControls(card, stream) {
   muteButton.setAttribute('aria-pressed', String(stream.mixMuted));
   muteButton.disabled = busy;
   muteButton.ariaLabel = t(stream.mixMuted ? 'unmuteStream' : 'muteStream', [stream.title]);
-  muteButton.title = muteButton.ariaLabel;
+  muteButton.title = t(stream.mixMuted ? 'unmuteHint' : 'muteHint');
   const normalizeButton = card.querySelector('.normalize-button');
   normalizeButton.setAttribute('aria-pressed', String(stream.normalizeEnabled));
   normalizeButton.disabled = busy || bypassed;

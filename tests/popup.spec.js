@@ -143,8 +143,10 @@ for (const locale of ['en', 'ja']) {
       await expect(view.locator('#count')).toHaveText('1 STREAM');
       await expect(view.locator('h3')).toHaveText(title);
       await expect(view.locator('.mute-button')).toHaveAttribute('aria-label', await localized(view, 'muteStream', [title]));
+      await expect(view.locator('.mute-button')).toHaveAttribute('title', locale === 'ja' ? 'この放送をミュート' : 'Mute this stream');
       await view.locator('.mute-button').click();
       await expect(view.locator('.mute-button')).toHaveAttribute('aria-label', await localized(view, 'unmuteStream', [title]));
+      await expect(view.locator('.mute-button')).toHaveAttribute('title', locale === 'ja' ? 'この放送のミュートを解除' : 'Unmute this stream');
       await expect(view.locator('.stream-state')).toHaveText(await localized(view, 'mixMutedState'));
       await view.locator('.mute-button').click();
       await expect(view.locator('.normalize-button')).toHaveAttribute('aria-pressed', 'true');
@@ -172,7 +174,7 @@ for (const locale of ['en', 'ja']) {
       }
       await expect(view.locator('.nr-level option:checked')).toHaveText(locale === 'ja' ? '中' : 'Medium');
       await view.locator('.nr-level').selectOption('low');
-      await expect(view.locator('.nr-level option:checked')).toHaveText(locale === 'ja' ? '小' : 'Low');
+      await expect(view.locator('.nr-level option:checked')).toHaveText(locale === 'ja' ? '弱' : 'Low');
       await expect(view.locator('.nr-level')).toHaveAttribute('aria-label', await localized(view, 'nrStrengthLabel', [title]));
       await view.locator('.solo-button').click();
       await expect(view.locator('#mix-heading')).toHaveText(locale === 'ja' ? 'ソロ再生中' : 'Solo playback');

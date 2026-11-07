@@ -21,7 +21,7 @@
     "message": "STEREO FIELD"
   },
   "fieldEmpty": {
-    "message": "音の居場所を、ひとつずつ。"
+    "message": "音を並べて、聴きやすく。"
   },
   "left": {
     "message": "LEFT"
@@ -346,10 +346,10 @@
     "message": "popup を閉じても、選択したタブの音量補正・パン・ノイズ抑制を継続します。"
   },
   "nrStrength": {
-    "message": "NR の強さ"
+    "message": "ノイズ除去の強さ"
   },
   "nrStrengthLabel": {
-    "message": "$title$ の NR の強さ",
+    "message": "$title$ のノイズ除去の強さ",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -357,16 +357,16 @@
     }
   },
   "nrStrengthHint": {
-    "message": "発話が途切れる場合は「小」へ。大きくするほどノイズ抑制が強まり、「大」は従来と同じ強さです。"
+    "message": "発話が途切れる場合は「弱」へ。弱・中・強の順にノイズ除去が強くなります。"
   },
   "nrLow": {
-    "message": "小"
+    "message": "弱"
   },
   "nrMedium": {
     "message": "中"
   },
   "nrHigh": {
-    "message": "大"
+    "message": "強"
   },
   "videoSnapshot": {
     "message": "$title$ の動画スナップショット",
@@ -433,6 +433,12 @@
   },
   "mixMutedState": {
     "message": "ミュート中"
+  },
+  "muteHint": {
+    "message": "この放送をミュート"
+  },
+  "unmuteHint": {
+    "message": "この放送のミュートを解除"
   },
   "focus": {
     "message": "Focus"
