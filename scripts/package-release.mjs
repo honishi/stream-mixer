@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { appendFile, copyFile, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -49,10 +48,8 @@ try {
   // zip updates existing archives, so remove any previous package first.
   await rm(archive, { force: true });
   execFileSync('zip', ['-X', '-q', archive, ...files], { cwd: staging });
-  const digest = createHash('sha256').update(await readFile(archive)).digest('hex');
-  await writeFile(`${archive}.sha256`, `${digest}  ${filename}\n`);
   if (process.env.GITHUB_OUTPUT) {
-    await appendFile(process.env.GITHUB_OUTPUT, `archive=${archive}\nchecksum=${archive}.sha256\n`);
+    await appendFile(process.env.GITHUB_OUTPUT, `archive=${archive}\n`);
   }
   console.log(`Packaged ${archive}`);
 } finally {

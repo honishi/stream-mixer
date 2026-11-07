@@ -64,12 +64,12 @@ npm run check
 npx playwright install chromium
 npm run test:browser
 
-# package a release ZIP and checksum in dist/
+# package a release ZIP in dist/
 npm run release:package -- 0.1.0
 ```
 
 Pushing a version tag such as `0.1.0` or `v0.1.0` runs the release workflow and publishes a GitHub Release after checks pass. Prerelease tags such as `0.1.0-rc.1` are also supported.
 
-Each release includes `stream-mixer-<version>-<commit>.zip` and its `.zip.sha256` checksum, for example `stream-mixer-0.9.0-85f7cf9.zip`. The version omits an optional leading `v` and retains any prerelease suffix; the commit is the first seven characters of the checked-out commit hash. The ZIP contains the extension files with `manifest.json` at its root; extract it and load the extracted folder in Chrome.
+Each release includes `stream-mixer-<version>-<commit>.zip`, for example `stream-mixer-0.9.0-85f7cf9.zip`. The version omits an optional leading `v` and retains any prerelease suffix; the commit is the first seven characters of the checked-out commit hash. The ZIP contains the extension files with `manifest.json` at its root; extract it and load the extracted folder in Chrome.
 
 Bundled RNNoise assets can be regenerated with `npm run vendor:nr`. See [third-party notices](extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md) for sources and licenses.

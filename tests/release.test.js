@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/package-release.mjs');
 
-test('release archives contain runtime assets, stamped versions, and valid checksums', async (t) => {
+test('release ZIPs contain runtime assets and stamped versions', async (t) => {
   const output = await mkdtemp(join(tmpdir(), 'stream-mixer-package-test-'));
   t.after(() => rm(output, { recursive: true, force: true }));
   const original = await readFile(join(root, 'extension/manifest.json'), 'utf8');
@@ -32,7 +31,7 @@ test('release archives contain runtime assets, stamped versions, and valid check
     });
     const filename = `stream-mixer-${versionName}-${commit.slice(0, 7)}.zip`;
     const archive = join(output, filename);
-    assert.equal(await readFile(stepOutput, 'utf8'), `archive=${archive}\nchecksum=${archive}.sha256\n`);
+    assert.equal(await readFile(stepOutput, 'utf8'), `archive=${archive}\n`);
     const entries = execFileSync('unzip', ['-Z1', archive], { encoding: 'utf8' }).trim().split('\n');
     assert.deepEqual(entries.sort(), tracked);
     const extract = (file) => execFileSync('unzip', ['-p', archive, file]);
@@ -42,8 +41,7 @@ test('release archives contain runtime assets, stamped versions, and valid check
     for (const file of tracked.filter((file) => file !== 'manifest.json')) {
       assert.deepEqual(extract(file), await readFile(join(root, 'extension', file)), file);
     }
-    const hash = createHash('sha256').update(await readFile(archive)).digest('hex');
-    assert.equal(await readFile(`${archive}.sha256`, 'utf8'), `${hash}  ${filename}\n`);
+    await assert.rejects(readFile(`${archive}.sha256`), { code: 'ENOENT' });
   }
   assert.equal(await readFile(join(root, 'extension/manifest.json'), 'utf8'), original);
 });

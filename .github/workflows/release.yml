@@ -47,7 +47,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_ARCHIVE: ${{ steps.package.outputs.archive }}
-          RELEASE_CHECKSUM: ${{ steps.package.outputs.checksum }}
         run: |
           flags=()
           if [[ "$RELEASE_TAG" == *-* ]]; then
@@ -55,7 +54,6 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" \
             "$RELEASE_ARCHIVE" \
-            "$RELEASE_CHECKSUM" \
             --verify-tag --generate-notes \
             --title "stream-mixer $RELEASE_TAG" \
             "${flags[@]}"
