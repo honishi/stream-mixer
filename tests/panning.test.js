@@ -9,6 +9,7 @@ test('unmodified streams retain the original even placement', () => {
   for (let count = 0; count <= 6; count++) {
     const actual = preferredPanPositions(entries(count), 0.65);
     const expected = panPositions(count, 0.65);
+    assert.equal(actual.length, expected.length);
     actual.forEach((pan, index) => assert.ok(Math.abs(pan - expected[index]) < 1e-12));
   }
 });
@@ -59,4 +60,20 @@ test('one stream can prefer a side, while empty and invalid requests are handled
         `${count} streams: an edge drop reaches ${edge}`);
     }
   }
+});
+
+test('moving a stream preserves identities and metadata without mutating the previous layout', () => {
+  const original = entries(4).map((entry) => Object.freeze({ ...entry, title: `Stream ${entry.id}`, muted: entry.id === 0 }));
+  Object.freeze(original);
+  const moved = withPanPreference(original, 0, 0.5, 1);
+  assert.deepEqual(moved.map(({ id }) => id).sort(), [0, 1, 2, 3]);
+  assert.equal(moved.find(({ id }) => id === 0).panPreference, 0.5);
+  for (const entry of moved) {
+    assert.equal(entry.title, original[entry.id].title);
+    assert.equal(entry.muted, original[entry.id].muted);
+  }
+  assert.ok(original.every(({ panPreference }) => panPreference === null));
+  const before = structuredClone(moved);
+  preferredPanPositions(moved, 0.5);
+  assert.deepEqual(moved, before);
 });

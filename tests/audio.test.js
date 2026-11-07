@@ -1,29 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Normalizer, PeakLimiter, dbToGain, gainToDb } from '../extension/audio/dsp.js';
-import { DEFAULT_SETTINGS, sanitizeSettings, panPositions } from '../extension/shared/settings.js';
 
 const sampleRate = 48000;
 function feed(dsp, amplitude, seconds = 12, ratio = 1) {
   const output = [new Float32Array(128), new Float32Array(128)];
   let peak = 0;
-  for (let block = 0; block < Math.ceil(seconds * sampleRate / 128); block++) {
+  let tailEnergy = 0;
+  let tailSamples = 0;
+  const blocks = Math.ceil(seconds * sampleRate / 128);
+  for (let block = 0; block < blocks; block++) {
     const left = Float32Array.from({ length: 128 }, (_, i) => amplitude * Math.sin(2 * Math.PI * 440 * (block * 128 + i) / sampleRate));
     const right = left.map((value) => value * ratio);
     dsp.process([left, right], output);
-    for (const channel of output) for (const value of channel) peak = Math.max(peak, Math.abs(value));
+    for (const channel of output) for (const value of channel) {
+      assert.ok(Number.isFinite(value), 'output must remain finite');
+      peak = Math.max(peak, Math.abs(value));
+      if (block >= blocks - Math.ceil(sampleRate / 128)) {
+        tailEnergy += value * value;
+        tailSamples++;
+      }
+    }
   }
-  return { output, peak };
+  return { output, peak, rms: Math.sqrt(tailEnergy / tailSamples) };
 }
 
 test('different sustained source levels converge toward the same RMS target', () => {
   const quiet = new Normalizer(sampleRate);
   const loud = new Normalizer(sampleRate);
   quiet.strength = loud.strength = 1;
-  feed(quiet, 0.04);
-  feed(loud, 0.4);
-  const quietDb = gainToDb(0.04 / Math.sqrt(2)) + quiet.gainDb;
-  const loudDb = gainToDb(0.4 / Math.sqrt(2)) + loud.gainDb;
+  const quietDb = gainToDb(feed(quiet, 0.04).rms);
+  const loudDb = gainToDb(feed(loud, 0.4).rms);
   assert.ok(Math.abs(quietDb - loudDb) < 0.3, `${quietDb} vs ${loudDb}`);
   assert.ok(Math.abs(loudDb + 22) < 0.1);
 });
@@ -84,21 +91,29 @@ test('disabling normalization smoothly removes positive and negative gain, retai
   }
 });
 
-test('pan positions stay symmetric with centered mono and bounded extremes', () => {
-  assert.deepEqual(panPositions(0, 1), []);
-  assert.deepEqual(panPositions(1, 1), [0]);
-  for (let count = 2; count <= 6; count++) {
-    const positions = panPositions(count, DEFAULT_SETTINGS.spread);
-    assert.equal(positions[0], -1);
-    assert.equal(positions.at(-1), 1);
-    assert.ok(Math.abs(positions.reduce((a, b) => a + b, 0)) < 1e-9);
-  }
-  assert.ok(panPositions(6, 0).every((pan) => pan === 0));
+test('missing input clears reused output buffers and does not contaminate a later signal', () => {
+  const dsp = new Normalizer(sampleRate);
+  dsp.strength = 0;
+  const output = [new Float32Array(128).fill(1), new Float32Array(128).fill(1)];
+  dsp.process([], output);
+  assert.ok(output.every((channel) => channel.every((value) => value === 0)));
+  const mono = new Float32Array(128).fill(0.1);
+  dsp.process([mono], output);
+  assert.deepEqual(output[0], mono);
+  assert.ok(output[1].every((value) => value === 0));
 });
 
-test('stored settings cannot inject invalid gain or pan values', () => {
-  assert.deepEqual(sanitizeSettings(), DEFAULT_SETTINGS);
-  assert.deepEqual(sanitizeSettings(null), DEFAULT_SETTINGS);
-  assert.deepEqual(sanitizeSettings({ volume: 5, strength: -1, spread: NaN, ignored: true }),
-    { volume: 1, strength: 0, spread: 1 });
+test('stereo peak protection responds to the louder right channel without mutating input', () => {
+  const dsp = new Normalizer(sampleRate);
+  dsp.enabled = false;
+  const input = [new Float32Array([0.1, -0.1, 0]), new Float32Array([2, -2, 0])];
+  const before = input.map((channel) => channel.slice());
+  const output = input.map((channel) => new Float32Array(channel.length));
+  dsp.process(input, output);
+  assert.deepEqual(input, before);
+  assert.ok(output[1][0] > 0.6 && output[1][1] < -0.6, 'nonzero signal and polarity survive');
+  for (let i = 0; i < output[0].length; i++) {
+    assert.ok(Math.abs(output[1][i]) <= dbToGain(-4) + 1e-6);
+    assert.ok(Math.abs(output[0][i] * 20 - output[1][i]) < 1e-6);
+  }
 });

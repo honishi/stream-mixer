@@ -188,7 +188,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-- **Unit tests** cover level convergence, gain retention during silence, sudden peaks, stereo ratios, disabling correction, output limiting, pan placement, and settings validation.
+- **Unit tests** cover level convergence, gain retention during silence, sudden peaks, stereo ratios, disabling correction, output limiting, pan placement, and settings validation. They also cover worklet control messages and RMS/peak reporting, irregular NR frame boundaries, and NR initialization, retry, timeout, and resource cleanup. The NR lifecycle tests fake only browser APIs and time; the worklet tests run the real DSP.
 - **Browser tests** create six audio tabs in an isolated Chromium profile and use real `tabCapture`, offscreen documents, and AudioWorklets. CDP grants permissions through the equivalent of a toolbar action. Tests interact with the actual popup document rendered in a test tab. Audio processing is not mocked; only the final speaker output uses a test device.
 - **Persistence** covers 31 seconds of silence across all streams, closing the popup, and stopping the service worker.
 - **Release, permissions, and storage** cover tab closure, individual and full release, resource cleanup, rejection of unapproved capture, and settings restoration after a browser restart.
@@ -203,6 +203,8 @@ npm run test:browser
 - **Card reordering** covers dragging and keyboard controls, cancellation, renumbering, audio settings retention, popup reopening, and adding or releasing tabs.
 - **Per-tab Normalize** covers the enabled default, smooth removal of boosts or cuts and behavior during silence, peak limiting, global strength, interactions with NR, Solo, reordering, bypass, and popup reopening, and the default after re-adding a tab.
 - Popup screenshots are saved to `test-results/`.
+
+Browser scenarios are grouped in `tests/{lifecycle,controls,panning,noise-reduction,popup,previews}.spec.js`, with shared browser setup in `tests/helpers/browser.js`. Run a focused suite with, for example, `npm run test:browser -- tests/controls.spec.js`. Unit tests live in `tests/*.test.js`; use `node --test tests/noise-reduction.test.js` to check NR failure handling without launching Chromium. Keep browser coverage for permissions, capture, and actual WASM behavior; use unit tests for numerical boundaries and deterministic failure paths.
 
 Browser tests use generated audio to verify functionality. Listening quality on real streams, site-specific restrictions, and long-term resource usage still need separate evaluation.
 

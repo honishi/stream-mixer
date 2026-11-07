@@ -106,3 +106,24 @@ test('Low and Medium retain speech discarded by the model; live changes ramp smo
     assert.ok(output.every((channel) => channel.every((sample) => sample === 0)), 'reset flushes buffered dry audio');
   }
 });
+
+test('uneven render blocks and missing channels preserve frame continuity without stale output', () => {
+  const adapter = new NoiseFrames([{ processFrame() {}, destroy() {} }, { processFrame() {}, destroy() {} }]);
+  let offset = 0;
+  const rendered = [[], []];
+  // Cross frame boundaries both within a block and between successive calls.
+  for (const length of [1, 479, 7, 1024, 33, 480, 1024]) {
+    const input = Float32Array.from({ length }, (_, i) => (offset + i + 1) / 10000);
+    const output = [new Float32Array(length).fill(9), new Float32Array(length).fill(9)];
+    adapter.process([input], output);
+    output.forEach((channel, c) => rendered[c].push(...channel));
+    offset += length;
+  }
+  assert.equal(rendered[0].length, offset);
+  for (let i = 0; i < offset; i++) {
+    const expected = i < 480 ? 0 : (i - 480 + 1) / 10000;
+    assert.ok(Math.abs(rendered[0][i] - expected) < 1e-7, `sample ${i}`);
+    assert.equal(rendered[1][i], 0);
+  }
+  adapter.destroy();
+});
