@@ -47,7 +47,7 @@ The list heading shows the current state: standby, mixing, solo playback, focus 
 
 - **STEREO FIELD / PAN**: Each stream's horizontal position. Numbers correspond to the card list. Markers move to their target positions while the audio follows smoothly. A glowing ring responds to each stream's audio level.
 - **OUTPUT**: Left and right RMS meters after NR, normalization, peak limiting, panning, Solo, Focus, and mute, but before overall volume. During bypass, meters still reflect mute. White lines show peaks from roughly the last 100 ms. The scale is −60 to 0 dBFS.
-- **Normalize (arrows)**: Toggles automatic volume correction for that tab. A lit button means it is enabled. The value below shows current correction: `+3 dB` boosts the signal and `−3 dB` attenuates it. Momentary peak limiting is shown separately.
+- **Normalize (arrows)**: Toggles automatic volume correction for that tab. A lit button means it is enabled. The value beside the button shows current correction: `+3 dB` boosts the signal and `−3 dB` attenuates it. Momentary peak limiting is shown separately beside the OUTPUT label.
 - **Silent / paused**: The tab remains controlled and keeps its position. Gain is not increased to amplify silence.
 
 ### Video thumbnails
