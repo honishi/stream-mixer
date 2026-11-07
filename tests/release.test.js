@@ -14,6 +14,7 @@ test('release archives contain runtime assets, stamped versions, and valid check
   const output = await mkdtemp(join(tmpdir(), 'stream-mixer-package-test-'));
   t.after(() => rm(output, { recursive: true, force: true }));
   const original = await readFile(join(root, 'extension/manifest.json'), 'utf8');
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   const tracked = execFileSync('git', ['ls-files', '-z', '--', 'extension/'], {
     cwd: root, encoding: 'utf8',
   }).split('\0').filter(Boolean).map((path) => path.slice('extension/'.length)).sort();
@@ -25,9 +26,13 @@ test('release archives contain runtime assets, stamped versions, and valid check
     ['1.2.3-rc.1', '1.2.3', '1.2.3-rc.1'],
     ['0.0.1', '0.0.1', '0.0.1'],
   ]) {
-    execFileSync(process.execPath, [script, tag, output]);
-    const filename = `stream-mixer-${tag}.zip`;
+    const stepOutput = join(output, `${tag}.outputs`);
+    execFileSync(process.execPath, [script, tag, output], {
+      env: { ...process.env, GITHUB_OUTPUT: stepOutput },
+    });
+    const filename = `stream-mixer-${versionName}-${commit.slice(0, 7)}.zip`;
     const archive = join(output, filename);
+    assert.equal(await readFile(stepOutput, 'utf8'), `archive=${archive}\nchecksum=${archive}.sha256\n`);
     const entries = execFileSync('unzip', ['-Z1', archive], { encoding: 'utf8' }).trim().split('\n');
     assert.deepEqual(entries.sort(), tracked);
     const extract = (file) => execFileSync('unzip', ['-p', archive, file]);
