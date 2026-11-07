@@ -1,4 +1,4 @@
-import { test, expect, launch, source, popup, addTestVideo, previewColor } from './helpers/browser.js';
+import { test, expect, launch, source, popup, state, addTestVideo, previewColor } from './helpers/browser.js';
 
 test('video previews refresh per tab, prefer playback, and disappear when video is unavailable', async () => {
   const app = await launch();

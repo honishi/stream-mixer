@@ -101,3 +101,35 @@ test('stop messages end every worklet without producing more output or diagnosti
     assert.equal(processor.port.postMessage.mock.callCount(), 0);
   }
 });
+
+for (const [requested, bounded] of [[5, 1], [-1, 0]]) {
+  test(`normalizer strength ${requested} produces the same audio as ${bounded}`, async (t) => {
+    const Normalize = (await processors(t)).get('stream-normalizer');
+    const actual = new Normalize();
+    const reference = new Normalize();
+    actual.port.onmessage({ data: { strength: requested } });
+    reference.port.onmessage({ data: { strength: bounded } });
+    const input = stereo(0.02, -0.01);
+    const output = stereo(0, 0);
+    const expected = stereo(0, 0);
+    for (let block = 0; block < 2000; block++) {
+      actual.process([input], [output]);
+      reference.process([input], [expected]);
+      assert.deepEqual(output, expected);
+    }
+    assert.ok(output[0][127] > 0, 'signal survives');
+  });
+}
+
+test('normalizer reports diagnostics every 100 ms and starts a fresh reporting interval', async (t) => {
+  const Normalize = (await processors(t)).get('stream-normalizer');
+  const processor = new Normalize();
+  const input = stereo(0.02, -0.02);
+  const output = stereo(0, 0);
+  for (let interval = 0; interval < 2; interval++) {
+    for (let block = 0; block < 37; block++) processor.process([input], [output]);
+    assert.equal(processor.port.postMessage.mock.callCount(), interval);
+    processor.process([input], [output]);
+    assert.equal(processor.port.postMessage.mock.callCount(), interval + 1);
+  }
+});

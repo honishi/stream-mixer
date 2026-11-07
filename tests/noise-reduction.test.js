@@ -51,9 +51,10 @@ test('NR waits for readiness, shares assets, and registers the worklet once per 
   assert.equal(settled, false);
   assert.equal(node.name, 'stream-noise-reduction');
   assert.equal(node.context, h.context);
-  assert.deepEqual(node.options.outputChannelCount, [2]);
-  assert.equal(node.options.processorOptions.wasmBinary, h.binary);
-  assert.equal(node.options.processorOptions.mix, 0.5);
+  assert.deepEqual(node.options, {
+    outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
+    processorOptions: { wasmBinary: h.binary, mix: 0.5 },
+  });
   message(node, { type: 'ready' });
   assert.equal(await first.result, node);
   t.mock.timers.tick(5000);

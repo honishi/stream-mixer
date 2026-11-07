@@ -1,4 +1,4 @@
-import { test, expect, extensionPath, launch, source, popup, localized, state, expectStablePeakLayout } from './helpers/browser.js';
+import { test, expect, extensionPath, launch, source, popup, localized, expectStablePeakLayout } from './helpers/browser.js';
 import { readFile, writeFile, mkdtemp, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

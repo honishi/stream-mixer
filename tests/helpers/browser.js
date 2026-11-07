@@ -171,5 +171,5 @@ export { test, expect, extensionPath, launch, source, popup, localized, state, a
 export async function injectFault(path, anchor, replacement) {
   const source = await readFile(path, 'utf8');
   expect(source.split(anchor), `Expected exactly one fault injection anchor in ${path}`).toHaveLength(2);
-  await writeFile(path, source.replace(anchor, replacement));
+  await writeFile(path, source.replace(anchor, () => replacement));
 }
