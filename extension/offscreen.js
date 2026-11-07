@@ -18,7 +18,7 @@ let bypassed = false;
 let solo;
 let soloTimer;
 let selectedSoloTabId = null;
-let selectedFocusTabId = null;
+const selectedFocusTabIds = new Set();
 
 async function ensureAudio() {
   if (context) return;
@@ -74,7 +74,7 @@ function applySettings() {
 function getState() {
   return { audioState: context?.state ?? 'idle', notices, bypassed, soloTabId: effectiveSoloTabId(),
     selectedSoloTabId, dragSoloTabId: solo?.tabId ?? null,
-    selectedFocusTabId, focusTabId: effectiveFocusTabId(),
+    selectedFocusTabIds: [...selectedFocusTabIds], focusTabIds: effectiveFocusTabIds(),
     streams: cardOrder.map((id) => {
       const entry = streams.get(id);
       return {
@@ -93,7 +93,7 @@ async function remove(id) {
   streams.delete(id);
   cardOrder = cardOrder.filter((entryId) => entryId !== id);
   if (selectedSoloTabId === id) selectedSoloTabId = null;
-  if (selectedFocusTabId === id) selectedFocusTabId = null;
+  selectedFocusTabIds.delete(id);
   if (solo?.tabId === id) endSolo(solo.owner);
   else applyStreamGains();
   panOrder = panOrder.filter((entryId) => entryId !== id);
@@ -179,7 +179,7 @@ function setNoiseReductionLevel(tabId, level) {
 }
 
 function effectiveSoloTabId() { return bypassed ? null : solo?.tabId ?? selectedSoloTabId; }
-function effectiveFocusTabId() { return bypassed || effectiveSoloTabId() !== null ? null : selectedFocusTabId; }
+function effectiveFocusTabIds() { return bypassed || effectiveSoloTabId() !== null ? [] : [...selectedFocusTabIds]; }
 
 function audibleGain(entry) {
   if (entry.mixMuted) return 0;
@@ -188,8 +188,8 @@ function audibleGain(entry) {
   const trim = bypassed ? 1 : 10 ** (entry.trimDb / 20);
   const selected = effectiveSoloTabId();
   if (selected !== null) return selected === entry.id ? trim : 0;
-  const focused = effectiveFocusTabId();
-  return trim * (focused !== null && focused !== entry.id ? FOCUS_BACKGROUND_GAIN : 1);
+  const focused = effectiveFocusTabIds();
+  return trim * (focused.length > 0 && !focused.includes(entry.id) ? FOCUS_BACKGROUND_GAIN : 1);
 }
 
 function applyStreamGains(timeConstant = 0.02) {
@@ -217,7 +217,7 @@ function toggleSolo(tabId) {
   if (bypassed) throw new Error('Resume the mix before selecting a solo tab.');
   requireStream(tabId);
   selectedSoloTabId = selectedSoloTabId === tabId ? null : tabId;
-  selectedFocusTabId = null;
+  selectedFocusTabIds.clear();
   applyStreamGains();
 }
 
@@ -225,7 +225,8 @@ function toggleSolo(tabId) {
 function toggleFocus(tabId) {
   if (bypassed) throw new Error('Resume the mix before changing Focus.');
   requireStream(tabId);
-  selectedFocusTabId = selectedFocusTabId === tabId ? null : tabId;
+  if (selectedFocusTabIds.has(tabId)) selectedFocusTabIds.delete(tabId);
+  else selectedFocusTabIds.add(tabId);
   selectedSoloTabId = null;
   applyStreamGains();
 }

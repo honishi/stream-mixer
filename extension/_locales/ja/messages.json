@@ -454,10 +454,10 @@
     }
   },
   "focusEnableHint": {
-    "message": "Focus: この放送の音量を保ち、他の放送を18 dB下げて再生します。"
+    "message": "Focus: この放送を選択に追加します。選択していない放送を18 dB下げて再生します。"
   },
   "focusDisableHint": {
-    "message": "Focusを解除し、他の放送を通常の音量に戻します。"
+    "message": "この放送のFocusを解除します。選択がなくなると、すべての放送が通常の音量に戻ります。"
   },
   "focusState": {
     "message": "フォーカス中"

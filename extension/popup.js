@@ -283,7 +283,7 @@ function renderStreamControls(card, stream) {
   soloButton.ariaLabel = t(selectedSolo ? 'soloDisable' : 'soloEnable', [stream.title]);
   soloButton.title = `${t('solo')}: ${t(selectedSolo ? 'soloDisableHint' : 'soloEnableHint')}`;
   const focusButton = card.querySelector('.focus-button');
-  const selectedFocus = latestState.selectedFocusTabId === stream.id;
+  const selectedFocus = latestState.selectedFocusTabIds.includes(stream.id);
   focusButton.setAttribute('aria-pressed', String(selectedFocus));
   focusButton.disabled = busy || bypassed;
   focusButton.ariaLabel = t(selectedFocus ? 'focusDisable' : 'focusEnable', [stream.title]);
@@ -363,8 +363,8 @@ function renderStream(stream, index) {
   else if (latestState.dragSoloTabId === stream.id && latestState.soloTabId === stream.id) stateKey = 'dragSoloState';
   else if (latestState.soloTabId === stream.id) stateKey = 'soloState';
   else if (bypassed) stateKey = 'bypassState';
-  else if (latestState.focusTabId === stream.id) stateKey = 'focusState';
-  else if (latestState.focusTabId != null) stateKey = 'otherFocus';
+  else if (latestState.focusTabIds.includes(stream.id)) stateKey = 'focusState';
+  else if (latestState.focusTabIds.length > 0) stateKey = 'otherFocus';
   else if (playing) stateKey = 'playingState';
   state.textContent = t(stateKey);
   state.title = state.textContent;
@@ -428,7 +428,7 @@ function render(state) {
   else if (state.bypassed) headingKey = 'bypassed';
   else if (state.audioState !== 'running') headingKey = 'paused';
   else if (state.soloTabId != null) headingKey = 'soloHeading';
-  else if (state.focusTabId != null) headingKey = 'focusHeading';
+  else if (state.focusTabIds?.length > 0) headingKey = 'focusHeading';
   $('mix-heading').textContent = t(headingKey);
   $('field-toolbar').hidden = !state.streams.length;
   if (!dragging) {

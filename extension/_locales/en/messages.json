@@ -454,10 +454,10 @@
     }
   },
   "focusEnableHint": {
-    "message": "Focus: keep this stream at its normal level and lower other streams by 18 dB."
+    "message": "Focus: add this stream to the selection. Streams outside the selection play 18 dB quieter."
   },
   "focusDisableHint": {
-    "message": "Stop Focus and restore other streams to their normal levels."
+    "message": "Remove this stream from Focus. Normal levels return for all streams when no selection remains."
   },
   "focusState": {
     "message": "Focused"

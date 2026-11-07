@@ -110,15 +110,15 @@ Solo selects a single tab to hear. Its button lights up in the tab's color, and 
 
 ### Focus
 
-A card's target icon (**Focus**) keeps that stream at its current level while reducing the others by 18 dB. Other streams remain faintly audible, unlike Solo, which silences them. Attenuation is applied after Normalize so automatic correction cannot undo it. Switching uses a short fade and does not change pan positions.
+Each card's target icon (**Focus**) independently adds or removes that stream from the selection. Selected streams keep their current levels, while unselected streams are reduced by 18 dB whenever at least one stream is selected. Other streams remain faintly audible, unlike Solo, which silences them. Attenuation is applied after Normalize so automatic correction cannot undo it. Switching uses a short fade and does not change pan positions.
 
-- Click again to clear Focus, or click another card's Focus button to change the selected stream.
-- Focus and regular Solo are mutually exclusive: enabling one clears the other.
+- Select multiple cards to keep them in the foreground together. Click a selected button to remove only that card. With no cards selected, all streams return to their normal levels; selecting every card also leaves all levels unchanged.
+- Focus and regular Solo are mutually exclusive: enabling Solo clears all Focus selections, and enabling Focus clears Solo.
 - Temporary Solo while dragging a STEREO FIELD marker takes priority, then restores Focus afterward.
-- Mute retains priority. Muting the focused tab leaves other streams at their reduced levels.
+- Mute retains priority. Muting a selected tab keeps its Focus selection; unselected streams remain at their reduced levels. Per-stream volume adjustments still apply to both groups.
 - Bypass removes Focus attenuation and disables its buttons. The selection is retained and restored when the mix resumes.
 - The selection survives reopening the popup and reordering cards. Newly added streams join at the reduced level.
-- Closing or releasing the focused tab clears Focus, as do releasing all tabs and restarting Chrome.
+- Closing or releasing a selected tab removes only that selection. Remaining selections stay active. Removing the last selection restores normal levels. Releasing all tabs and restarting Chrome clear every selection.
 
 ### NR (noise reduction)
 
@@ -206,13 +206,13 @@ npm run test:browser
 - **NR** covers noise attenuation and preservation of a speech-like signal with the real WASM model, independent stereo channels, Solo and bypass interactions, popup reopening, all three strengths, retention of model-suppressed speech, smooth transitions, 960-sample alignment of the bundled WASM output and original audio, six simultaneous NR streams, repeated toggling, and continued playback after loading or processing failures.
 - **Localization** covers translation keys and substitution arguments, English and Japanese display and controls, English audio diagnostics, the 680 px width, and two-column cards. Headless Chrome on macOS ignores `--lang`, so locale tests copy the extension, retain only the target catalog, and use Chrome's native fallback. The OS language is not changed.
 - **Video thumbnails** cover periodic updates from real video frames, preference for playing videos, same-origin iframes and Shadow DOM, per-tab images, hiding unavailable or unauthorized previews, stopping capture when the popup closes, and restarting it when reopened.
-- **Focus** covers preservation of the selected level, 18 dB attenuation of other streams, clearing and switching selection, interactions with Solo, temporary Solo, mute, and bypass, persistence across popup reopening and reordering, and adding or releasing tabs.
+- **Focus** covers preservation of the selected level, 18 dB attenuation of other streams, independent multiple selections, selecting all or none, interactions with Solo, temporary Solo, mute, per-stream volume adjustment, and bypass, persistence across popup reopening and reordering, and adding or releasing tabs.
 - **Mute** covers actual silence and recovery, precedence over Solo, temporary Solo, and bypass, use with NR and Normalize, persistence across reordering and popup reopening, and the default state after re-adding a tab.
 - **Card reordering** covers dragging and keyboard controls, cancellation, renumbering, audio settings retention, popup reopening, and adding or releasing tabs.
 - **Per-tab Normalize** covers the enabled default, smooth removal of boosts or cuts and behavior during silence, peak limiting, global strength, interactions with NR, Solo, reordering, bypass, and popup reopening, and the default after re-adding a tab.
 - Popup screenshots are saved to `test-results/`.
 
-Browser scenarios are grouped in `tests/{lifecycle,controls,panning,noise-reduction,popup,previews}.spec.js`, with shared browser setup in `tests/helpers/browser.js`. Run a focused suite with, for example, `npm run test:browser -- tests/controls.spec.js`. Unit tests live in `tests/*.test.js`; use `node --test tests/noise-reduction.test.js` to check NR failure handling without launching Chromium. Keep browser coverage for permissions, capture, and actual WASM behavior; use unit tests for numerical boundaries and deterministic failure paths.
+Browser scenarios are grouped in `tests/{lifecycle,controls,focus,volume-trim,panning,noise-reduction,popup,previews}.spec.js`, with shared browser setup in `tests/helpers/browser.js`. Run a focused suite with, for example, `npm run test:browser -- tests/controls.spec.js`. Unit tests live in `tests/*.test.js`; use `node --test tests/noise-reduction.test.js` to check NR failure handling without launching Chromium. Keep browser coverage for permissions, capture, and actual WASM behavior; use unit tests for numerical boundaries and deterministic failure paths.
 
 Browser tests use generated audio to verify functionality. Listening quality on real streams, site-specific restrictions, and long-term resource usage still need separate evaluation.
 

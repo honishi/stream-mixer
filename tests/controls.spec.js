@@ -123,11 +123,11 @@ test('Focus lowers other streams by 18 dB and restores after solo previews, bypa
     await view.locator('.focus-button').nth(1).click();
     await expectLevels(secondId);
     await view.locator('.focus-button').first().click();
-    await expectLevels(firstId);
-    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(1);
+    await expectLevels(null);
+    await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(2);
     await view.locator('.solo-button').nth(1).click();
     await expectLevels(null, [firstId]);
-    expect((await state(view)).selectedFocusTabId).toBeNull();
+    expect((await state(view)).selectedFocusTabIds).toEqual([]);
     await view.locator('.focus-button').first().click();
     await expectLevels(firstId);
     expect((await state(view)).selectedSoloTabId).toBeNull();
@@ -140,8 +140,8 @@ test('Focus lowers other streams by 18 dB and restores after solo previews, bypa
     await view.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2);
     await view.mouse.down();
     await expect.poll(async () => (await state(view)).soloTabId).toBe(secondId);
-    expect((await state(view)).focusTabId).toBeNull();
-    expect((await state(view)).selectedFocusTabId).toBe(firstId);
+    expect((await state(view)).focusTabIds).toEqual([]);
+    expect((await state(view)).selectedFocusTabIds).toEqual([firstId]);
     await expect.poll(async () => Math.max(...(await state(view)).streams[0].rms)).toBeLessThan(-90);
     await view.mouse.up();
     await view.evaluate(() => chrome.runtime.sendMessage({ target: 'worker', type: 'SETTINGS', settings: { spread: 0 } }));
@@ -178,11 +178,11 @@ test('Focus lowers other streams by 18 dB and restores after solo previews, bypa
       const stream = (await state(view)).streams.at(-1);
       return Math.abs(Math.max(...stream.rms) - stream.inputDb + 18);
     }).toBeLessThan(1.5);
-    expect((await state(view)).focusTabId).toBe(firstId);
+    expect((await state(view)).focusTabIds).toEqual([firstId]);
     await view.locator('.remove-button').nth(1).click();
     await expect(view.locator('.stream-card')).toHaveCount(2);
     await expect(view.locator('.focus-button[aria-pressed=true]')).toHaveCount(0);
-    expect((await state(view)).selectedFocusTabId).toBeNull();
+    expect((await state(view)).selectedFocusTabIds).toEqual([]);
     await expect.poll(async () => (await state(view)).streams.every((stream) =>
       Math.abs(Math.max(...stream.rms) - stream.inputDb) < 1.5)).toBe(true);
     await expect(view.locator('#error')).toBeHidden();
