@@ -45,11 +45,19 @@ test('video previews refresh per tab, prefer playback, and disappear when video 
     for (const key of ['Home', 'End']) {
       await marker.press(key);
       await expect.poll(async () => (await state(view)).streams[0].targetPan).toBe(key === 'Home' ? -1 : 1);
-      const field = await view.locator('.stereo-field').boundingBox();
-      const labels = await view.locator('.field-labels').boundingBox();
+      await expect(marker).toHaveAttribute('aria-valuenow', key === 'Home' ? '-100' : '100');
+      // Wait for the rendered target, then measure parent/child geometry together.
+      await marker.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+      const { field, labels, markers } = await view.evaluate(() => ({
+        field: document.querySelector('.stereo-field').getBoundingClientRect().toJSON(),
+        labels: document.querySelector('.field-labels').getBoundingClientRect().toJSON(),
+        markers: [...document.querySelectorAll('.position-dot')].map((dot) => ({
+          dot: dot.getBoundingClientRect().toJSON(),
+          thumbnail: dot.querySelector('.position-preview').getBoundingClientRect().toJSON(),
+        })),
+      }));
       for (let index = 0; index < 2; index++) {
-        const dot = await view.locator('.position-dot').nth(index).boundingBox();
-        const thumbnail = await view.locator('.position-preview').nth(index).boundingBox();
+        const { dot, thumbnail } = markers[index];
         expect(thumbnail.x).toBeGreaterThanOrEqual(field.x);
         expect(thumbnail.x + thumbnail.width).toBeLessThanOrEqual(field.x + field.width);
         expect(thumbnail.y).toBeGreaterThan(dot.y + dot.height);
