@@ -36,7 +36,7 @@ async function getSettings() {
 }
 
 async function updateBadge(count) {
-  await chrome.action.setBadgeBackgroundColor({ color: '#9bdec1' });
+  await chrome.action.setBadgeBackgroundColor({ color: '#8dd8d3' });
   await chrome.action.setBadgeText({ text: count ? String(count) : '' });
 }
 

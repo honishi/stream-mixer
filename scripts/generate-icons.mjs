@@ -11,11 +11,11 @@ try {
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
       ctx.scale(size / 128, size / 128);
-      ctx.fillStyle = '#20271b';
+      ctx.fillStyle = '#111719';
       ctx.beginPath();
       ctx.roundRect(0, 0, 128, 128, 27);
       ctx.fill();
-      ctx.fillStyle = '#9bdec1';
+      ctx.fillStyle = '#4ade80';
       for (const [x, y, height] of [[29, 44, 40], [57, 24, 80], [85, 34, 60]]) {
         ctx.beginPath();
         ctx.roundRect(x, y, 14, height, 7);
