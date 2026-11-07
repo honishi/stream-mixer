@@ -15,7 +15,7 @@ try {
       ctx.beginPath();
       ctx.roundRect(0, 0, 128, 128, 27);
       ctx.fill();
-      ctx.fillStyle = '#c1ed8b';
+      ctx.fillStyle = '#9bdec1';
       for (const [x, y, height] of [[29, 44, 40], [57, 24, 80], [85, 34, 60]]) {
         ctx.beginPath();
         ctx.roundRect(x, y, 14, height, 7);

@@ -6,8 +6,8 @@
   --text: #20291d;
   --muted: #5d6955;
   --secondary: #4e5d45;
-  --accent: #426b22;
-  --accent-hover: #35571b;
+  --accent: #277154;
+  --accent-hover: #205e46;
   --on-accent: #ffffff;
   --scrollbar: #a1ad95;
   --field-line: #b7c3ac;
@@ -28,11 +28,11 @@
   --error-bg: #fff0ea;
   --error-line: #c48873;
   --error-text: #8e3e2b;
-  --stream-1: #426b22;
+  --stream-1: #277154;
   --stream-2: #246489;
   --stream-3: #814d7e;
   --stream-4: #805a16;
-  --stream-5: #276d59;
+  --stream-5: #426b22;
   --stream-6: #994b36;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
   font-size: 12px;
@@ -46,8 +46,8 @@
     --text: #eef0e7;
     --muted: #a0a794;
     --secondary: #c3cbb7;
-    --accent: #c1ed8b;
-    --accent-hover: #d1f5a5;
+    --accent: #9bdec1;
+    --accent-hover: #b6ead4;
     --on-accent: #141714;
     --scrollbar: #49523e;
     --field-line: #424b37;
@@ -68,11 +68,11 @@
     --error-bg: #34251f;
     --error-line: #6a483a;
     --error-text: #f2bdad;
-    --stream-1: #c1ed8b;
+    --stream-1: #9bdec1;
     --stream-2: #9acbe9;
     --stream-3: #dfb1dc;
     --stream-4: #efca83;
-    --stream-5: #9ce0cb;
+    --stream-5: #c1ed8b;
     --stream-6: #edab99;
   }
 }
