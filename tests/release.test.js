@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/package-release.mjs');
 
-test('release ZIPs contain runtime assets and stamped versions', async (t) => {
+test('release ZIPs contain runtime assets, the project license, and stamped versions', async (t) => {
   const output = await mkdtemp(join(tmpdir(), 'stream-mixer-package-test-'));
   t.after(() => rm(output, { recursive: true, force: true }));
   const original = await readFile(join(root, 'extension/manifest.json'), 'utf8');
@@ -33,8 +33,9 @@ test('release ZIPs contain runtime assets and stamped versions', async (t) => {
     const archive = join(output, filename);
     assert.equal(await readFile(stepOutput, 'utf8'), `archive=${archive}\n`);
     const entries = execFileSync('unzip', ['-Z1', archive], { encoding: 'utf8' }).trim().split('\n');
-    assert.deepEqual(entries.sort(), tracked);
+    assert.deepEqual(entries.sort(), ['LICENSE', ...tracked].sort());
     const extract = (file) => execFileSync('unzip', ['-p', archive, file]);
+    assert.deepEqual(extract('LICENSE'), await readFile(join(root, 'LICENSE')));
     const manifest = JSON.parse(extract('manifest.json'));
     assert.equal(manifest.version, version);
     assert.equal(manifest.version_name, versionName);

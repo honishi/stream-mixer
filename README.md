@@ -77,10 +77,14 @@ Push a tag such as `0.1.0`, `v0.1.0`, or `0.1.0-rc.1` to validate, test, and pub
 
 Release ZIPs use `stream-mixer-<version>-<commit>.zip`, e.g. `stream-mixer-0.9.0-85f7cf9.zip`. The version drops the leading `v` but keeps prerelease suffixes; the commit is the checked-out hash's first seven characters.
 
-ZIPs contain Git-tracked `extension/` files with `manifest.json` at the root. Packaging sets its numeric `version` and full `version_name` from the tag without changing the source manifest. Extract and load as described above.
+ZIPs contain Git-tracked `extension/` files and the project `LICENSE`, with `manifest.json` at the root. Packaging sets its numeric `version` and full `version_name` from the tag without changing the source manifest. Extract and load as described above.
 
 ## Chrome Web Store assets
 
 Promotional images, prompts, and earlier designs are in [stream-mixer-assets](https://github.com/honishi/stream-mixer-assets). Selected tile: `small-promo-tile/selected/small-promo-tile.png` (440×280, 24-bit RGB PNG, no alpha).
 
 Submit to the Chrome Web Store separately from GitHub Releases, with a public URL for the [Privacy Policy](PRIVACY.md).
+
+## License
+
+Original project code is licensed under the [MIT License](LICENSE). Bundled third-party components retain their own licenses; see [third-party notices](extension/vendor/rnnoise/THIRD_PARTY_NOTICES.md).

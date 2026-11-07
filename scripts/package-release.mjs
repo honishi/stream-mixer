@@ -35,6 +35,7 @@ try {
     await mkdir(dirname(destination), { recursive: true });
     await copyFile(source, destination);
   }
+  await copyFile(join(root, 'LICENSE'), join(staging, 'LICENSE'));
   const manifestPath = join(staging, 'manifest.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   manifest.version = version;
@@ -47,7 +48,7 @@ try {
   const archive = join(output, filename);
   // zip updates existing archives, so remove any previous package first.
   await rm(archive, { force: true });
-  execFileSync('zip', ['-X', '-q', archive, ...files], { cwd: staging });
+  execFileSync('zip', ['-X', '-q', archive, 'LICENSE', ...files], { cwd: staging });
   if (process.env.GITHUB_OUTPUT) {
     await appendFile(process.env.GITHUB_OUTPUT, `archive=${archive}\n`);
   }
