@@ -60,6 +60,9 @@
   "mixSettings": {
     "message": "Mix settings"
   },
+  "resetSettings": {
+    "message": "Reset to defaults"
+  },
   "settingsSummary": {
     "message": "Volume · Normalize · Width"
   },

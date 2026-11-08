@@ -1,5 +1,5 @@
 import { localizeDocument, t } from './shared/i18n.js';
-import { clamp, panPositions } from './shared/settings.js';
+import { clamp, DEFAULT_SETTINGS, panPositions } from './shared/settings.js';
 
 /** @returns {HTMLElement | null} */
 function $(id) {
@@ -448,6 +448,7 @@ function render(state) {
   }
   $('reset-pans').hidden = !state.streams.some((stream) => Number.isFinite(stream.panPreference));
   $('reset-pans').disabled = busy || state.bypassed;
+  $('reset-settings').disabled = state.bypassed;
   $('stop-all').disabled = busy || !state.streams.length;
   $('resume').hidden = !state.streams.length || state.audioState === 'running';
   $('notice').textContent = state.notices.join('\n');
@@ -561,6 +562,14 @@ $('add').addEventListener('click', () => act('START', { tabId: activeTab?.id }))
 $('stop-all').addEventListener('click', () => act('STOP_ALL'));
 $('bypass').addEventListener('click', () => act('BYPASS', { enabled: !latestState?.bypassed }));
 $('reset-pans').addEventListener('click', () => act('RESET_PANS'));
+$('reset-settings').addEventListener('click', () => {
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+    $(key).value = Math.round(value * 100);
+    dirtySettings.add(key);
+    updateSlider(key);
+  }
+  saveSettings();
+});
 $('resume').addEventListener('click', () => act('RESUME'));
 window.addEventListener('pagehide', saveSettings);
 document.addEventListener('keydown', (event) => {

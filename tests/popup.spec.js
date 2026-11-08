@@ -3,6 +3,71 @@ import { readFile, writeFile, mkdtemp, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+test('mix settings reset overrides pending edits, persists, and preserves stream controls', async () => {
+  const app = await launch();
+  try {
+    const audio = await source(app);
+    let view = await popup(app, audio);
+    await view.locator('#add').click();
+    await expect(view.locator('.stream-card')).toHaveCount(1);
+    await view.locator('.trim-level').selectOption('-6');
+    await view.locator('.normalize-button').click();
+    await expect(view.locator('.normalize-button')).toHaveAttribute('aria-pressed', 'false');
+    await view.locator('.focus-button').click();
+    await expect(view.locator('.focus-button')).toHaveAttribute('aria-pressed', 'true');
+    await view.locator('.position-dot').focus();
+    await view.keyboard.press('End');
+    await expect(view.locator('#reset-pans')).toBeVisible();
+    const before = await state(view);
+    await view.locator('.settings-section > summary').click();
+    // Hold a slider save in flight so the reset must follow it without losing any defaults.
+    await view.evaluate(() => {
+      const send = chrome.runtime.sendMessage.bind(chrome.runtime);
+      chrome.runtime.sendMessage = async (message, ...args) => {
+        if (message.type === 'SETTINGS' && !window.releaseSettings) {
+          await new Promise((resolve) => { window.releaseSettings = resolve; });
+        }
+        return send(message, ...args);
+      };
+      for (const key of ['volume', 'strength', 'spread']) {
+        const slider = document.getElementById(key);
+        slider.value = '20';
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      document.getElementById('volume').dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect.poll(() => view.evaluate(() => Boolean(window.releaseSettings))).toBe(true);
+    await view.locator('#reset-settings').click();
+    for (const [key, value] of Object.entries({ volume: '80', strength: '75', spread: '100' })) {
+      await expect(view.locator(`#${key}`)).toHaveValue(value);
+      await expect(view.locator(`#${key}-value`)).toHaveText(`${value}%`);
+    }
+    await view.evaluate(() => window.releaseSettings());
+    const defaults = { volume: 0.8, strength: 0.75, spread: 1 };
+    await expect.poll(async () => (await state(view)).settings).toEqual(defaults);
+    expect(await app.worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings)).toEqual(defaults);
+    const after = await state(view);
+    const controls = (current) => current.streams.map(({ id, trimDb, normalizeEnabled, noiseReductionEnabled, noiseReductionLevel, mixMuted, panPreference }) =>
+      ({ id, trimDb, normalizeEnabled, noiseReductionEnabled, noiseReductionLevel, mixMuted, panPreference }));
+    expect(controls(after)).toEqual(controls(before));
+    expect(after.selectedFocusTabIds).toEqual(before.selectedFocusTabIds);
+    expect(after.audioState).toBe('running');
+    await view.close();
+    view = await popup(app, audio, false);
+    await view.locator('.settings-section > summary').click();
+    await expect(view.locator('#volume')).toHaveValue('80');
+    await expect(view.locator('#strength')).toHaveValue('75');
+    await expect(view.locator('#spread')).toHaveValue('100');
+    await view.locator('#bypass').click();
+    await expect(view.locator('#reset-settings')).toBeDisabled();
+    await view.locator('#stop-all').click();
+    await expect(view.locator('#reset-settings')).toBeEnabled();
+    await view.locator('#reset-settings').click();
+    await expect(view.locator('#error')).toBeHidden();
+    expect(app.errors).toEqual([]);
+  } finally { await app.context.close(); }
+});
+
 test('system theme changes update the open popup without changing the mix or layout', async () => {
   const app = await launch();
   try {
