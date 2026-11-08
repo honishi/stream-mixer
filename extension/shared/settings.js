@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = Object.freeze({ volume: 0.8, strength: 0.75, spread: 1 });
+export const DEFAULT_SETTINGS = Object.freeze({ volume: 1, strength: 0.75, spread: 1 });
 
 /** @returns {number} */
 export function clamp(value, min, max) {

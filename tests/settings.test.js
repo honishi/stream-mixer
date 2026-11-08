@@ -8,7 +8,7 @@ test('missing or malformed stored settings restore independent defaults', () => 
     assert.deepEqual(settings, DEFAULT_SETTINGS);
     assert.notEqual(settings, DEFAULT_SETTINGS);
     settings.volume = 0;
-    assert.equal(DEFAULT_SETTINGS.volume, 0.8);
+    assert.equal(DEFAULT_SETTINGS.volume, 1);
   }
 });
 

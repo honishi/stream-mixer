@@ -38,12 +38,12 @@ test('mix settings reset overrides pending edits, persists, and preserves stream
     });
     await expect.poll(() => view.evaluate(() => Boolean(window.releaseSettings))).toBe(true);
     await view.locator('#reset-settings').click();
-    for (const [key, value] of Object.entries({ volume: '80', strength: '75', spread: '100' })) {
+    for (const [key, value] of Object.entries({ volume: '100', strength: '75', spread: '100' })) {
       await expect(view.locator(`#${key}`)).toHaveValue(value);
       await expect(view.locator(`#${key}-value`)).toHaveText(`${value}%`);
     }
     await view.evaluate(() => window.releaseSettings());
-    const defaults = { volume: 0.8, strength: 0.75, spread: 1 };
+    const defaults = { volume: 1, strength: 0.75, spread: 1 };
     await expect.poll(async () => (await state(view)).settings).toEqual(defaults);
     expect(await app.worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings)).toEqual(defaults);
     const after = await state(view);
@@ -55,7 +55,7 @@ test('mix settings reset overrides pending edits, persists, and preserves stream
     await view.close();
     view = await popup(app, audio, false);
     await view.locator('.settings-section > summary').click();
-    await expect(view.locator('#volume')).toHaveValue('80');
+    await expect(view.locator('#volume')).toHaveValue('100');
     await expect(view.locator('#strength')).toHaveValue('75');
     await expect(view.locator('#spread')).toHaveValue('100');
     await view.locator('#bypass').click();
